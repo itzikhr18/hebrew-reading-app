@@ -10,34 +10,34 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 const ASSETS = {
   images: {
     // Mascots
-    mascotHappy: '/assets/images/mascot_happy.png',
-    mascotCelebrate: '/assets/images/mascot_celebrate.png',
-    mascotThinking: '/assets/images/mascot_thinking.png',
-    mascotEncourage: '/assets/images/mascot_encourage.png',
+    mascotHappy: './assets/images/mascot_happy.png',
+    mascotCelebrate: './assets/images/mascot_celebrate.png',
+    mascotThinking: './assets/images/mascot_thinking.png',
+    mascotEncourage: './assets/images/mascot_encourage.png',
     // Backgrounds
-    bgHome: '/assets/images/bg_home.png',
-    bgLearn: '/assets/images/bg_learn.png',
-    bgGame: '/assets/images/bg_game.png',
+    bgHome: './assets/images/bg_home.png',
+    bgLearn: './assets/images/bg_learn.png',
+    bgGame: './assets/images/bg_game.png',
     // Buttons
-    btnPrimary: '/assets/images/btn_primary.png',
-    btnNav: '/assets/images/btn_nav.png',
-    btnPlay: '/assets/images/btn_play.png',
-    btnBack: '/assets/images/btn_back.png',
+    btnPrimary: './assets/images/btn_primary.png',
+    btnNav: './assets/images/btn_nav.png',
+    btnPlay: './assets/images/btn_play.png',
+    btnBack: './assets/images/btn_back.png',
     // Icons
-    iconHome: '/assets/images/icon_home.png',
-    iconLearn: '/assets/images/icon_learn.png',
-    iconStar: '/assets/images/icon_star.png',
+    iconHome: './assets/images/icon_home.png',
+    iconLearn: './assets/images/icon_learn.png',
+    iconStar: './assets/images/icon_star.png',
     // Elements
-    elementBubble: '/assets/images/element_bubble.png',
-    elementCheck: '/assets/images/element_check.png',
-    elementConfetti: '/assets/images/element_confetti.png',
-    elementFrame: '/assets/images/element_frame.png',
-    elementHeart: '/assets/images/element_heart.png',
+    elementBubble: './assets/images/element_bubble.png',
+    elementCheck: './assets/images/element_check.png',
+    elementConfetti: './assets/images/element_confetti.png',
+    elementFrame: './assets/images/element_frame.png',
+    elementHeart: './assets/images/element_heart.png',
   },
   audio: {
-    success: '/assets/audio/sound_success.mp3',
-    click: '/assets/audio/sound_click.mp3',
-    wrong: '/assets/audio/sound_wrong.mp3',
+    success: './assets/audio/sound_success.mp3',
+    click: './assets/audio/sound_click.mp3',
+    wrong: './assets/audio/sound_wrong.mp3',
   }
 };
 
