@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
 /*
- * אפליקציית לימוד קריאה לילדים - גרסה 9.0
- * שדרוג חינוכי + ויזואלי מלא
+ * אפליקציית לימוד קריאה לילדים - גרסה 10.0
+ * שיפור דיבור + ויזואליה מתקדמת
  */
 
 // ==================== ASSETS ====================
@@ -104,18 +104,56 @@ function randomFrom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 // ==================== HOOKS ====================
 function useSpeech() {
   const synth = useRef(null);
+  const hebrewVoice = useRef(null);
+
   useEffect(() => {
     synth.current = window.speechSynthesis;
-    return () => { if (synth.current) synth.current.cancel(); };
+
+    const findHebrewVoice = () => {
+      const voices = synth.current.getVoices();
+      // Prefer he-IL voices, prioritize female voices for children's app
+      const heVoices = voices.filter(v => v.lang === 'he-IL' || v.lang === 'he');
+      if (heVoices.length > 0) {
+        hebrewVoice.current = heVoices.find(v => /female|carmit|lihi/i.test(v.name)) || heVoices[0];
+      }
+    };
+
+    findHebrewVoice();
+    synth.current.addEventListener('voiceschanged', findHebrewVoice);
+    return () => {
+      if (synth.current) {
+        synth.current.removeEventListener('voiceschanged', findHebrewVoice);
+        synth.current.cancel();
+      }
+    };
   }, []);
-  const speak = useCallback((text) => {
+
+  const speak = useCallback((text, options = {}) => {
     if (!synth.current) return;
     synth.current.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'he-IL';
-    u.rate = 0.85;
-    synth.current.speak(u);
+
+    // Split on periods/dots to create natural pauses between sentences
+    const segments = text.split(/[.]+/).map(s => s.trim()).filter(Boolean);
+
+    let delay = 0;
+    segments.forEach((segment, i) => {
+      setTimeout(() => {
+        if (!synth.current) return;
+        const u = new SpeechSynthesisUtterance(segment);
+        u.lang = 'he-IL';
+        if (hebrewVoice.current) u.voice = hebrewVoice.current;
+        // Single letters/sounds get slower, more deliberate speech
+        const isShort = segment.length <= 3;
+        u.rate = options.rate || (isShort ? 0.65 : 0.8);
+        u.pitch = options.pitch || (isShort ? 1.1 : 1.0);
+        u.volume = 1.0;
+        synth.current.speak(u);
+      }, delay);
+      // Add pause between segments
+      delay += Math.max(600, segment.length * 120) + 300;
+    });
   }, []);
+
   return speak;
 }
 
@@ -252,21 +290,22 @@ function StreakBadge({ streak }) {
 
 function Button({ children, onClick, color = '#4ECDC4', size = 'medium', icon, disabled, style }) {
   const sizes = {
-    small: { padding: '8px 16px', fontSize: 14, borderRadius: 14 },
-    medium: { padding: '12px 28px', fontSize: 18, borderRadius: 18 },
-    large: { padding: '16px 40px', fontSize: 22, borderRadius: 22 },
+    small: { padding: '8px 16px', fontSize: 14, borderRadius: 16 },
+    medium: { padding: '12px 28px', fontSize: 18, borderRadius: 20 },
+    large: { padding: '16px 40px', fontSize: 22, borderRadius: 24 },
   };
   const s = sizes[size] || sizes.medium;
   return (
     <button onClick={onClick} disabled={disabled}
       style={{
         ...s, border: 'none',
-        background: `linear-gradient(180deg, ${color}, ${color}cc)`,
+        background: `linear-gradient(145deg, ${color}, ${color}dd)`,
         color: 'white', fontFamily: "'Rubik', sans-serif", fontWeight: 700,
         cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.5 : 1,
-        boxShadow: `0 4px 18px ${color}44`, transition: 'transform 0.15s, box-shadow 0.15s',
+        boxShadow: `0 6px 20px ${color}55, inset 0 1px 0 rgba(255,255,255,0.25)`,
+        transition: 'transform 0.15s, box-shadow 0.15s',
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-        whiteSpace: 'nowrap', ...style,
+        whiteSpace: 'nowrap', letterSpacing: '0.3px', ...style,
       }}
     >
       {icon && <span style={{ fontSize: s.fontSize + 4 }}>{icon}</span>}
@@ -299,8 +338,9 @@ function NavBar({ current, onNavigate, stars, level }) {
     <div style={{
       position: 'absolute', bottom: 0, left: 0, right: 0, height: 70,
       display: 'flex', alignItems: 'center', justifyContent: 'space-around',
-      background: 'white', borderRadius: '22px 22px 0 0',
-      boxShadow: '0 -4px 25px rgba(0,0,0,0.08)', zIndex: 100,
+      background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+      borderRadius: '22px 22px 0 0',
+      boxShadow: '0 -4px 30px rgba(0,0,0,0.06)', zIndex: 100,
     }}>
       {items.map(item => {
         const isActive = current === item.id;
@@ -344,8 +384,10 @@ function Feedback({ type, message }) {
     }}>
       <div style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center',
-        padding: '30px 45px', borderRadius: 28, background: 'white',
-        boxShadow: '0 15px 50px rgba(0,0,0,0.25)', animation: 'popIn 0.35s ease',
+        padding: '30px 45px', borderRadius: 30, background: 'rgba(255,255,255,0.95)',
+        backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.2), 0 0 0 1px rgba(255,255,255,0.5) inset',
+        animation: 'popIn 0.35s ease',
       }}>
         <img
           src={isSuccess ? ASSETS.images.mascotCelebrate : ASSETS.images.mascotEncourage}
@@ -456,21 +498,22 @@ function HomeScreen({ onActivity, speak, progress }) {
             }}
             style={{
               width: '100%', display: 'flex', alignItems: 'center', gap: 14,
-              padding: '14px 18px', marginBottom: 10,
-              background: act.gradient, borderRadius: 20,
-              border: `2px solid ${act.color}33`,
-              boxShadow: '0 4px 15px rgba(0,0,0,0.05)',
+              padding: '16px 20px', marginBottom: 12,
+              background: act.gradient, borderRadius: 22,
+              border: `1.5px solid ${act.color}28`,
+              boxShadow: `0 6px 20px ${act.color}15, 0 2px 6px rgba(0,0,0,0.03)`,
               cursor: 'pointer', transition: 'transform 0.2s',
               animation: `fadeInUp 0.4s ease forwards`,
               animationDelay: `${i * 0.1}s`, opacity: 0,
             }}
           >
             <div style={{
-              width: 52, height: 52, borderRadius: 16,
-              background: 'white', display: 'flex',
+              width: 54, height: 54, borderRadius: 17,
+              background: 'rgba(255,255,255,0.9)', display: 'flex',
               alignItems: 'center', justifyContent: 'center',
-              fontSize: 26, flexShrink: 0,
-              boxShadow: `0 3px 10px ${act.color}22`,
+              fontSize: 28, flexShrink: 0,
+              boxShadow: `0 4px 14px ${act.color}20`,
+              border: `1px solid rgba(255,255,255,0.7)`,
             }}>
               {act.icon}
             </div>
@@ -491,8 +534,9 @@ function HomeScreen({ onActivity, speak, progress }) {
           ].map((s, i) => (
             <div key={i} style={{
               flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-              background: 'white', padding: '10px 6px', borderRadius: 16,
-              boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
+              background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(10px)',
+              padding: '12px 6px', borderRadius: 18,
+              boxShadow: '0 4px 16px rgba(0,0,0,0.05)', border: '1px solid rgba(255,255,255,0.6)',
               animation: `fadeInUp 0.4s ease forwards`, animationDelay: `${0.4 + i * 0.1}s`, opacity: 0,
             }}>
               <span style={{ fontSize: 20 }}>{s.icon}</span>
@@ -598,10 +642,10 @@ function LearnScreen({ speak, progress, addLetter, addStars, onBack }) {
         {/* Letter Circle */}
         <div style={{
           width: 150, height: 150, borderRadius: '50%',
-          background: 'white', display: 'flex', flexDirection: 'column',
+          background: `radial-gradient(circle at 30% 30%, white 0%, #fafafa 100%)`,
+          display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center',
-          boxShadow: `0 8px 35px ${letter.color}33`,
-          border: `4px solid ${letter.color}`,
+          boxShadow: `0 10px 40px ${letter.color}40, 0 0 0 4px ${letter.color}, 0 0 0 8px ${letter.color}22`,
           marginBottom: 12, animation: 'popIn 0.4s ease',
         }}>
           <span style={{ fontSize: 72, fontWeight: 700, color: letter.color, lineHeight: 1 }}>{letter.letter}</span>
@@ -621,11 +665,13 @@ function LearnScreen({ speak, progress, addLetter, addStars, onBack }) {
         {/* Word Card */}
         <div style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center',
-          background: 'white', padding: '14px 30px', borderRadius: 22,
-          boxShadow: '0 4px 18px rgba(0,0,0,0.06)',
+          background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)',
+          padding: '18px 35px', borderRadius: 24,
+          boxShadow: '0 8px 30px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.8)',
+          border: '1px solid rgba(255,255,255,0.6)',
           animation: 'fadeInUp 0.4s ease 0.2s forwards', opacity: 0,
         }}>
-          <span style={{ fontSize: 50, animation: 'bounce 2s ease infinite' }}>{word.emoji}</span>
+          <span style={{ fontSize: 56, animation: 'bounce 2s ease infinite', filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.1))' }}>{word.emoji}</span>
           <div style={{ marginTop: 8 }}>{renderWord()}</div>
           <span style={{ fontSize: 13, color: '#aaa', marginTop: 4, fontFamily: "'Rubik', sans-serif" }}>
             מתחיל באות <span style={{ color: letter.color, fontWeight: 700 }}>{letter.letter}</span>
@@ -858,15 +904,17 @@ function GameScreen({ speak, addStars, addGame, addStreak, resetStreak, onBack, 
                   aspectRatio: numOptions <= 2 ? '1.2' : '1',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: numOptions <= 2 ? 60 : 48, fontWeight: 700, color: opt.color,
-                  background: bg, borderRadius: 20,
-                  border: `3px solid ${isSelected ? (isCorrect ? '#4CAF50' : '#F44336') : opt.color}`,
+                  background: isSelected ? bg : `linear-gradient(145deg, white, #fafafa)`,
+                  borderRadius: 22,
+                  border: `3px solid ${isSelected ? (isCorrect ? '#4CAF50' : '#F44336') : opt.color + '66'}`,
                   boxShadow: isSelected
-                    ? (isCorrect ? '0 0 20px rgba(76,175,80,0.3)' : '0 0 20px rgba(244,67,54,0.3)')
-                    : '0 4px 15px rgba(0,0,0,0.06)',
+                    ? (isCorrect ? '0 0 25px rgba(76,175,80,0.35), inset 0 0 15px rgba(76,175,80,0.1)' : '0 0 25px rgba(244,67,54,0.35), inset 0 0 15px rgba(244,67,54,0.1)')
+                    : `0 6px 20px ${opt.color}18, 0 2px 6px rgba(0,0,0,0.04)`,
                   cursor: selected ? 'default' : 'pointer',
                   transition: 'all 0.2s',
                   fontFamily: "'Rubik', sans-serif",
                   animation: `fadeInUp 0.3s ease ${i * 0.05}s forwards`, opacity: 0,
+                  textShadow: `0 2px 4px ${opt.color}33`,
                 }}
               >
                 {opt.letter}
@@ -936,11 +984,13 @@ function MatchGameWrapper(props) {
     questionText: (data) => (
       <div style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center',
-        background: 'white', padding: '14px 35px', borderRadius: 22,
-        boxShadow: '0 4px 20px rgba(0,0,0,0.06)', marginBottom: 16,
-        animation: 'popIn 0.3s ease',
+        background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)',
+        padding: '18px 40px', borderRadius: 24,
+        boxShadow: '0 8px 30px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.8)',
+        border: '1px solid rgba(255,255,255,0.6)',
+        marginBottom: 16, animation: 'popIn 0.3s ease',
       }}>
-        <span style={{ fontSize: 50, animation: 'bounce 2s ease infinite' }}>{data.word?.emoji}</span>
+        <span style={{ fontSize: 56, animation: 'bounce 2s ease infinite', filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.1))' }}>{data.word?.emoji}</span>
         <span style={{ fontSize: 24, fontWeight: 700, marginTop: 5, fontFamily: "'Rubik', sans-serif", color: '#2D3436' }}>
           <span style={{ color: data.target.color, fontSize: 28 }}>{data.word?.text[0]}</span>
           {data.word?.text.slice(1)}
@@ -970,10 +1020,11 @@ function SoundGameWrapper(props) {
     questionText: (data) => (
       <div style={{ marginBottom: 16, textAlign: 'center', animation: 'popIn 0.3s ease' }}>
         <div style={{
-          width: 80, height: 80, borderRadius: '50%', margin: '0 auto 10px',
-          background: 'linear-gradient(135deg, #FF9800, #FF5722)',
+          width: 85, height: 85, borderRadius: '50%', margin: '0 auto 10px',
+          background: 'linear-gradient(145deg, #FFB74D, #FF5722)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 36, cursor: 'pointer', boxShadow: '0 4px 20px rgba(255,152,0,0.3)',
+          fontSize: 38, cursor: 'pointer',
+          boxShadow: '0 6px 25px rgba(255,152,0,0.4), inset 0 2px 0 rgba(255,255,255,0.3)',
           animation: 'pulse 2s ease infinite',
         }} onClick={() => props.speak(data.target.sound)}>
           🔊
