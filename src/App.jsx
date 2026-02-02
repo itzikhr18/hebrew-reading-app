@@ -551,7 +551,14 @@ function HomeScreen({ onActivity, speak, progress }) {
 }
 
 function LearnScreen({ speak, progress, addLetter, addStars, onBack }) {
-  const [idx, setIdx] = useState(0);
+  const [idx, setIdx] = useState(() => {
+    // Start from the first unlearned letter
+    if (progress.learned.length > 0) {
+      const nextIdx = LETTERS.findIndex(l => !progress.learned.includes(l.letter));
+      return nextIdx >= 0 ? nextIdx : 0;
+    }
+    return 0;
+  });
   const [wordIdx, setWordIdx] = useState(0);
   const [showFeedback, setShowFeedback] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -941,28 +948,37 @@ function FindGameWrapper(props) {
     icon: '🔍',
     color: '#FF6B6B',
     bgGradient: 'linear-gradient(180deg, #FDE8EF 0%, #FFF8E7 100%)',
-    description: 'שמע את שם האות ומצא אותה מבין האותיות!',
+    description: 'שמע את הצליל ומצא איזו אות עושה אותו!',
     TOTAL: 5,
     generateRound: (numOpts) => {
       const shuffled = [...LETTERS].sort(() => Math.random() - 0.5);
       const t = shuffled[0];
       const opts = [t, ...shuffled.slice(1, numOpts)].sort(() => Math.random() - 0.5);
-      return { target: t, options: opts, speakText: `איפה האות ${t.name}?`, retryText: `נסה שוב! איפה ${t.name}?` };
+      return { target: t, options: opts, speakText: t.sound, retryText: `נסה שוב!` };
     },
     questionText: (data) => (
       <div style={{ marginBottom: 16, textAlign: 'center', animation: 'popIn 0.3s ease' }}>
-        <img src={ASSETS.images.mascotThinking} alt="" style={{ width: 70, height: 70, objectFit: 'contain', marginBottom: 8 }} />
+        <div style={{
+          width: 80, height: 80, borderRadius: '50%', margin: '0 auto 10px',
+          background: `linear-gradient(145deg, ${data.target.color}, ${data.target.color}bb)`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 36, cursor: 'pointer',
+          boxShadow: `0 6px 25px ${data.target.color}44, inset 0 2px 0 rgba(255,255,255,0.3)`,
+          animation: 'pulse 2s ease infinite',
+        }} onClick={() => props.speak(data.target.sound)}>
+          🔊
+        </div>
         <div style={{
           fontSize: 20, fontWeight: 700, color: '#2D3436',
           background: 'white', padding: '10px 24px', borderRadius: 18,
           fontFamily: "'Rubik', sans-serif", boxShadow: '0 2px 10px rgba(0,0,0,0.06)',
         }}>
-          איפה האות <span style={{ color: data.target.color, fontSize: 24 }}>{data.target.name}</span>? 🤔
+          איזו אות עושה את הצליל הזה? 🤔
         </div>
       </div>
     ),
     getOptions: (data) => data.options,
-  }), []);
+  }), [props]);
   return <GameScreen {...props} gameConfig={config} />;
 }
 
