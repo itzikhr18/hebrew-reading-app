@@ -612,7 +612,6 @@ function HomeScreen({ onActivity, speak, progress }) {
 
 function LearnScreen({ speak, progress, addLetter, addStars, onBack }) {
   const [idx, setIdx] = useState(() => {
-    // Start from the first unlearned letter
     if (progress.learned.length > 0) {
       const nextIdx = LETTERS.findIndex(l => !progress.learned.includes(l.letter));
       return nextIdx >= 0 ? nextIdx : 0;
@@ -622,8 +621,12 @@ function LearnScreen({ speak, progress, addLetter, addStars, onBack }) {
   const [wordIdx, setWordIdx] = useState(0);
   const [showFeedback, setShowFeedback] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [quizMode, setQuizMode] = useState(false);
+  const [quizOptions, setQuizOptions] = useState([]);
+  const [quizSelected, setQuizSelected] = useState(null);
   const playSound = useSound();
   const safeTimeout = useSafeTimeouts();
+  const pickerRef = useRef(null);
 
   const letter = LETTERS[idx];
   const word = letter.words[wordIdx];
@@ -633,9 +636,27 @@ function LearnScreen({ speak, progress, addLetter, addStars, onBack }) {
   }, [speak, letter, word]);
 
   useEffect(() => {
-    const t = setTimeout(speakNow, 500);
-    return () => clearTimeout(t);
-  }, [idx, wordIdx, speakNow]);
+    if (!quizMode) {
+      const t = setTimeout(speakNow, 500);
+      return () => clearTimeout(t);
+    }
+  }, [idx, wordIdx, speakNow, quizMode]);
+
+  // Scroll letter picker to show current letter
+  useEffect(() => {
+    if (pickerRef.current) {
+      const btn = pickerRef.current.children[idx];
+      if (btn) btn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
+  }, [idx]);
+
+  const jumpToLetter = (i) => {
+    playSound('click');
+    setIdx(i);
+    setWordIdx(0);
+    setQuizMode(false);
+    setQuizSelected(null);
+  };
 
   const goNext = () => {
     if (wordIdx < letter.words.length - 1) setWordIdx(w => w + 1);
@@ -647,16 +668,41 @@ function LearnScreen({ speak, progress, addLetter, addStars, onBack }) {
     else if (idx > 0) { setIdx(i => i - 1); setWordIdx(0); }
   };
 
-  const handleLearned = () => {
+  const startQuiz = () => {
     playSound('click');
-    addLetter(letter.letter);
-    addStars(1);
-    setShowFeedback(true);
-    setShowConfetti(true);
-    safeTimeout(() => { setShowFeedback(false); setShowConfetti(false); goNext(); }, 1800);
+    const distractors = pickDistractors(letter, 2);
+    const opts = [letter, ...distractors].sort(() => Math.random() - 0.5);
+    setQuizOptions(opts);
+    setQuizSelected(null);
+    setQuizMode(true);
+    safeTimeout(() => speak(letter.sound), 300);
   };
 
-  // Highlight the first letter in the word
+  const handleQuizPick = (opt) => {
+    if (quizSelected) return;
+    playSound('click');
+    setQuizSelected(opt.letter);
+    if (opt.letter === letter.letter) {
+      addLetter(letter.letter);
+      addStars(2);
+      setShowFeedback(true);
+      setShowConfetti(true);
+      safeTimeout(() => {
+        setShowFeedback(false);
+        setShowConfetti(false);
+        setQuizMode(false);
+        setQuizSelected(null);
+        setWordIdx(0);
+        setIdx(i => (i + 1) % LETTERS.length);
+      }, 1800);
+    } else {
+      safeTimeout(() => {
+        setQuizSelected(null);
+        speak(`לא, נסה שוב! ${letter.sound}`);
+      }, 1200);
+    }
+  };
+
   const renderWord = () => {
     const first = word.text[0];
     const rest = word.text.slice(1);
@@ -697,7 +743,31 @@ function LearnScreen({ speak, progress, addLetter, addStars, onBack }) {
         <IconButton onClick={speakNow} color="#2196F3">🔊</IconButton>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'center', padding: '0 20px', position: 'relative', zIndex: 1 }}>
+      {/* Letter Picker Strip */}
+      <div ref={pickerRef} style={{
+        display: 'flex', gap: 6, padding: '6px 12px', overflowX: 'auto', overflowY: 'hidden',
+        position: 'relative', zIndex: 1, flexShrink: 0,
+        scrollbarWidth: 'none', msOverflowStyle: 'none',
+      }}>
+        {LETTERS.map((l, i) => {
+          const learned = progress.learned.includes(l.letter);
+          const isCurrent = i === idx;
+          return (
+            <button key={i} onClick={() => jumpToLetter(i)} style={{
+              width: 34, height: 34, minWidth: 34, borderRadius: 10, border: 'none',
+              background: isCurrent ? l.color : learned ? `${l.color}33` : '#eee',
+              color: isCurrent ? 'white' : learned ? l.color : '#bbb',
+              fontSize: 15, fontWeight: 700, fontFamily: "'Rubik', sans-serif",
+              cursor: 'pointer', transition: 'all 0.2s',
+              boxShadow: isCurrent ? `0 3px 10px ${l.color}55` : 'none',
+              transform: isCurrent ? 'scale(1.15)' : 'scale(1)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>{l.letter}</button>
+          );
+        })}
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 20px 0', position: 'relative', zIndex: 1 }}>
         <ProgressBar current={idx + 1} total={LETTERS.length} color={letter.color} />
       </div>
 
@@ -706,67 +776,117 @@ function LearnScreen({ speak, progress, addLetter, addStars, onBack }) {
         flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
         justifyContent: 'center', padding: '8px 20px', position: 'relative', zIndex: 1, minHeight: 0,
       }}>
-        {/* Letter Circle */}
-        <div style={{
-          width: 150, height: 150, borderRadius: '50%',
-          background: `radial-gradient(circle at 30% 30%, white 0%, #fafafa 100%)`,
-          display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center',
-          boxShadow: `0 10px 40px ${letter.color}40, 0 0 0 4px ${letter.color}, 0 0 0 8px ${letter.color}22`,
-          marginBottom: 12, animation: 'popIn 0.4s ease',
-        }}>
-          <span style={{ fontSize: 72, fontWeight: 700, color: letter.color, lineHeight: 1 }}>{letter.letter}</span>
-          <span style={{ fontSize: 14, color: '#777', fontFamily: "'Rubik', sans-serif", marginTop: 2 }}>{letter.name}</span>
-        </div>
+        {quizMode ? (
+          /* Quiz Mode */
+          <>
+            <div style={{
+              fontSize: 18, fontWeight: 700, color: '#2D3436', fontFamily: "'Rubik', sans-serif",
+              marginBottom: 14, textAlign: 'center',
+            }}>
+              איזו אות עושה את הצליל הזה? 🎯
+            </div>
+            <div style={{
+              width: 70, height: 70, borderRadius: '50%', margin: '0 auto 16px',
+              background: `linear-gradient(145deg, ${letter.color}, ${letter.color}bb)`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 30, cursor: 'pointer',
+              boxShadow: `0 6px 20px ${letter.color}44`,
+              animation: 'pulse 2s ease infinite',
+            }} onClick={() => speak(letter.sound)}>
+              🔊
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, width: '100%', maxWidth: 260 }}>
+              {quizOptions.map((opt, i) => {
+                const isSelected = quizSelected === opt.letter;
+                const isCorrect = opt.letter === letter.letter;
+                let bg = 'white';
+                if (isSelected) bg = isCorrect ? '#C8E6C9' : '#FFCDD2';
+                return (
+                  <div key={i} onClick={() => handleQuizPick(opt)} style={{
+                    aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 44, fontWeight: 700, color: opt.color,
+                    background: isSelected ? bg : `linear-gradient(145deg, white, #fafafa)`,
+                    borderRadius: 20,
+                    border: `3px solid ${isSelected ? (isCorrect ? '#4CAF50' : '#F44336') : opt.color + '66'}`,
+                    boxShadow: isSelected
+                      ? (isCorrect ? '0 0 20px rgba(76,175,80,0.3)' : '0 0 20px rgba(244,67,54,0.3)')
+                      : `0 4px 15px ${opt.color}18`,
+                    cursor: quizSelected ? 'default' : 'pointer',
+                    transition: 'all 0.2s', fontFamily: "'Rubik', sans-serif",
+                    animation: `fadeInUp 0.3s ease ${i * 0.05}s forwards`, opacity: 0,
+                  }}>{opt.letter}</div>
+                );
+              })}
+            </div>
+          </>
+        ) : (
+          /* Learn Mode */
+          <>
+            <div style={{
+              width: 130, height: 130, borderRadius: '50%',
+              background: `radial-gradient(circle at 30% 30%, white 0%, #fafafa 100%)`,
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center',
+              boxShadow: `0 10px 40px ${letter.color}40, 0 0 0 4px ${letter.color}, 0 0 0 8px ${letter.color}22`,
+              marginBottom: 10, animation: 'popIn 0.4s ease',
+            }}>
+              <span style={{ fontSize: 62, fontWeight: 700, color: letter.color, lineHeight: 1 }}>{letter.letter}</span>
+              <span style={{ fontSize: 13, color: '#777', fontFamily: "'Rubik', sans-serif", marginTop: 2 }}>{letter.name}</span>
+            </div>
 
-        {/* Sound info */}
-        <div style={{
-          background: `${letter.color}15`, padding: '6px 18px', borderRadius: 14,
-          marginBottom: 10, animation: 'fadeInUp 0.4s ease 0.1s forwards', opacity: 0,
-        }}>
-          <span style={{ fontSize: 15, color: letter.color, fontWeight: 600, fontFamily: "'Rubik', sans-serif" }}>
-            🔈 האות אומרת: &quot;{letter.sound}&quot;
-          </span>
-        </div>
+            <div style={{
+              background: `${letter.color}15`, padding: '5px 16px', borderRadius: 14,
+              marginBottom: 8, animation: 'fadeInUp 0.4s ease 0.1s forwards', opacity: 0,
+            }}>
+              <span style={{ fontSize: 14, color: letter.color, fontWeight: 600, fontFamily: "'Rubik', sans-serif" }}>
+                🔈 האות אומרת: &quot;{letter.sound}&quot;
+              </span>
+            </div>
 
-        {/* Word Card */}
-        <div style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'center',
-          background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)',
-          padding: '18px 35px', borderRadius: 24,
-          boxShadow: '0 8px 30px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.8)',
-          border: '1px solid rgba(255,255,255,0.6)',
-          animation: 'fadeInUp 0.4s ease 0.2s forwards', opacity: 0,
-        }}>
-          <span style={{ fontSize: 56, animation: 'bounce 2s ease infinite', filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.1))' }}>{word.emoji}</span>
-          <div style={{ marginTop: 8 }}>{renderWord()}</div>
-          <span style={{ fontSize: 13, color: '#aaa', marginTop: 4, fontFamily: "'Rubik', sans-serif" }}>
-            מתחיל באות <span style={{ color: letter.color, fontWeight: 700 }}>{letter.letter}</span>
-          </span>
-        </div>
+            <div style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+              background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)',
+              padding: '14px 30px', borderRadius: 22,
+              boxShadow: '0 8px 30px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.8)',
+              border: '1px solid rgba(255,255,255,0.6)',
+              animation: 'fadeInUp 0.4s ease 0.2s forwards', opacity: 0,
+            }}>
+              <span style={{ fontSize: 48, animation: 'bounce 2s ease infinite', filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.1))' }}>{word.emoji}</span>
+              <div style={{ marginTop: 6 }}>{renderWord()}</div>
+              <span style={{ fontSize: 12, color: '#aaa', marginTop: 3, fontFamily: "'Rubik', sans-serif" }}>
+                מתחיל באות <span style={{ color: letter.color, fontWeight: 700 }}>{letter.letter}</span>
+              </span>
+            </div>
 
-        {/* Dots */}
-        <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-          {letter.words.map((_, i) => (
-            <span key={i} style={{
-              width: 10, height: 10, borderRadius: '50%',
-              background: i === wordIdx ? letter.color : '#ddd',
-              transition: 'all 0.3s',
-              transform: i === wordIdx ? 'scale(1.4)' : 'scale(1)',
-              boxShadow: i === wordIdx ? `0 0 8px ${letter.color}66` : 'none',
-            }} />
-          ))}
-        </div>
+            <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+              {letter.words.map((_, i) => (
+                <span key={i} style={{
+                  width: 8, height: 8, borderRadius: '50%',
+                  background: i === wordIdx ? letter.color : '#ddd',
+                  transition: 'all 0.3s',
+                  transform: i === wordIdx ? 'scale(1.4)' : 'scale(1)',
+                  boxShadow: i === wordIdx ? `0 0 8px ${letter.color}66` : 'none',
+                }} />
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Bottom Actions */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        gap: 10, padding: '10px 20px', position: 'relative', zIndex: 1, flexShrink: 0,
+        gap: 10, padding: '8px 20px', position: 'relative', zIndex: 1, flexShrink: 0,
       }}>
-        <Button onClick={goPrev} color="#BDBDBD" size="small" icon="→">הקודם</Button>
-        <Button onClick={handleLearned} color="#4CAF50" size="large" icon="✓">למדתי!</Button>
-        <Button onClick={goNext} color="#BDBDBD" size="small" icon="←">הבא</Button>
+        {quizMode ? (
+          <Button onClick={() => { setQuizMode(false); setQuizSelected(null); }} color="#BDBDBD" size="medium" icon="←">חזרה ללימוד</Button>
+        ) : (
+          <>
+            <Button onClick={goPrev} color="#BDBDBD" size="small" icon="→">הקודם</Button>
+            <Button onClick={startQuiz} color="#4CAF50" size="large" icon="❓">בחן אותי!</Button>
+            <Button onClick={goNext} color="#BDBDBD" size="small" icon="←">הבא</Button>
+          </>
+        )}
       </div>
     </div>
   );
