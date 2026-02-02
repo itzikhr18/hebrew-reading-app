@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
 /*
- * אפליקציית לימוד קריאה לילדים - גרסה 10.0
- * שיפור דיבור + ויזואליה מתקדמת
+ * אפליקציית לימוד קריאה לילדים - גרסה 11.0
+ * אוצר מילים מורחב + ערבוב חכם
  */
 
 // ==================== ASSETS ====================
@@ -24,71 +24,131 @@ const ASSETS = {
 const LETTERS = [
   { letter: 'א', name: 'אָלֶף', sound: 'אה', color: '#FF6B6B', words: [
     { text: 'אבא', emoji: '👨' }, { text: 'אמא', emoji: '👩' }, { text: 'אריה', emoji: '🦁' }, { text: 'אבטיח', emoji: '🍉' },
+    { text: 'אוטובוס', emoji: '🚌' }, { text: 'אגוז', emoji: '🥜' }, { text: 'אופניים', emoji: '🚲' }, { text: 'ארנב', emoji: '🐇' },
   ]},
   { letter: 'ב', name: 'בֵּית', sound: 'בּ', color: '#4ECDC4', words: [
     { text: 'בית', emoji: '🏠' }, { text: 'בננה', emoji: '🍌' }, { text: 'בלון', emoji: '🎈' },
+    { text: 'ברווז', emoji: '🦆' }, { text: 'בקבוק', emoji: '🍼' }, { text: 'בובה', emoji: '🧸' }, { text: 'ברק', emoji: '⚡' },
   ]},
   { letter: 'ג', name: 'גִימֶל', sound: 'גּ', color: '#FF69B4', words: [
     { text: 'גמל', emoji: '🐪' }, { text: 'גלידה', emoji: '🍦' }, { text: 'גזר', emoji: '🥕' },
+    { text: 'גשם', emoji: '🌧️' }, { text: 'גלגל', emoji: '🛞' }, { text: 'גיטרה', emoji: '🎸' },
   ]},
   { letter: 'ד', name: 'דָלֶת', sound: 'דּ', color: '#F39C12', words: [
     { text: 'דג', emoji: '🐟' }, { text: 'דבש', emoji: '🍯' }, { text: 'דלת', emoji: '🚪' },
+    { text: 'דובדבן', emoji: '🍒' }, { text: 'דינוזאור', emoji: '🦕' }, { text: 'דגל', emoji: '🏳️' }, { text: 'דוב', emoji: '🐻' },
   ]},
   { letter: 'ה', name: 'הֵא', sound: 'ה', color: '#1ABC9C', words: [
     { text: 'הר', emoji: '⛰️' }, { text: 'היפופוטם', emoji: '🦛' },
+    { text: 'הגה', emoji: '🎡' }, { text: 'המבורגר', emoji: '🍔' }, { text: 'הפתעה', emoji: '🎁' }, { text: 'הליכון', emoji: '👟' },
   ]},
   { letter: 'ו', name: 'וָו', sound: 'ו', color: '#9B59B6', words: [
     { text: 'ורד', emoji: '🌹' }, { text: 'וילון', emoji: '🪟' },
+    { text: 'וואפל', emoji: '🧇' }, { text: 'וידאו', emoji: '📹' }, { text: 'ויולה', emoji: '🎻' }, { text: 'ולקן', emoji: '🌋' },
   ]},
   { letter: 'ז', name: 'זַיִן', sound: 'ז', color: '#3498DB', words: [
     { text: 'זברה', emoji: '🦓' }, { text: 'זית', emoji: '🫒' },
+    { text: 'זיקוקים', emoji: '🎆' }, { text: 'זנב', emoji: '🐕' }, { text: 'זרע', emoji: '🌱' }, { text: 'זמר', emoji: '🎤' },
   ]},
   { letter: 'ח', name: 'חֵית', sound: 'ח', color: '#E74C3C', words: [
     { text: 'חתול', emoji: '🐱' }, { text: 'חלב', emoji: '🥛' }, { text: 'חמור', emoji: '🫏' },
+    { text: 'חלון', emoji: '🪟' }, { text: 'חיפושית', emoji: '🐞' }, { text: 'חמניה', emoji: '🌻' }, { text: 'חצוצרה', emoji: '🎺' },
   ]},
   { letter: 'ט', name: 'טֵית', sound: 'ט', color: '#2ECC71', words: [
     { text: 'טלפון', emoji: '📱' }, { text: 'טיל', emoji: '🚀' },
+    { text: 'טלוויזיה', emoji: '📺' }, { text: 'טבעת', emoji: '💍' }, { text: 'טוס', emoji: '🦅' }, { text: 'טנק', emoji: '🪖' },
   ]},
   { letter: 'י', name: 'יוֹד', sound: 'י', color: '#E67E22', words: [
     { text: 'יד', emoji: '✋' }, { text: 'ילד', emoji: '👦' }, { text: 'ירח', emoji: '🌙' },
+    { text: 'יען', emoji: '🦃' }, { text: 'ינשוף', emoji: '🦉' }, { text: 'יהלום', emoji: '💎' }, { text: 'יונה', emoji: '🕊️' },
   ]},
   { letter: 'כ', name: 'כָּף', sound: 'כּ', color: '#8E44AD', words: [
     { text: 'כלב', emoji: '🐕' }, { text: 'כוכב', emoji: '⭐' }, { text: 'כדור', emoji: '⚽' },
+    { text: 'כובע', emoji: '🎩' }, { text: 'כרית', emoji: '🛏️' }, { text: 'כנף', emoji: '🪽' }, { text: 'כיסא', emoji: '🪑' },
   ]},
   { letter: 'ל', name: 'לָמֶד', sound: 'ל', color: '#16A085', words: [
     { text: 'לב', emoji: '❤️' }, { text: 'לחם', emoji: '🍞' }, { text: 'לימון', emoji: '🍋' },
+    { text: 'לביא', emoji: '🦁' }, { text: 'לגו', emoji: '🧱' }, { text: 'לוח', emoji: '📋' }, { text: 'לטאה', emoji: '🦎' },
   ]},
   { letter: 'מ', name: 'מֵם', sound: 'מ', color: '#D35400', words: [
     { text: 'מים', emoji: '💧' }, { text: 'מלך', emoji: '👑' }, { text: 'מטוס', emoji: '✈️' },
+    { text: 'מכונית', emoji: '🚗' }, { text: 'מטריה', emoji: '☂️' }, { text: 'מגדלור', emoji: '🗼' }, { text: 'מפתח', emoji: '🔑' },
   ]},
   { letter: 'נ', name: 'נוּן', sound: 'נ', color: '#27AE60', words: [
     { text: 'נר', emoji: '🕯️' }, { text: 'נמר', emoji: '🐆' }, { text: 'נחש', emoji: '🐍' },
+    { text: 'נמלה', emoji: '🐜' }, { text: 'נעל', emoji: '👟' }, { text: 'נשר', emoji: '🦅' }, { text: 'נסיכה', emoji: '👸' },
   ]},
   { letter: 'ס', name: 'סָמֶך', sound: 'ס', color: '#9370DB', words: [
     { text: 'סוס', emoji: '🐴' }, { text: 'סירה', emoji: '⛵' },
+    { text: 'סנאי', emoji: '🐿️' }, { text: 'סוכריה', emoji: '🍬' }, { text: 'סלט', emoji: '🥗' }, { text: 'ספר', emoji: '📖' },
   ]},
   { letter: 'ע', name: 'עַיִן', sound: 'ע', color: '#228B22', words: [
     { text: 'עץ', emoji: '🌳' }, { text: 'עוגה', emoji: '🎂' }, { text: 'ענן', emoji: '☁️' },
+    { text: 'עכביש', emoji: '🕷️' }, { text: 'עגלה', emoji: '🛒' }, { text: 'עפיפון', emoji: '🪁' }, { text: 'עיניים', emoji: '👀' },
   ]},
   { letter: 'פ', name: 'פֵּא', sound: 'פּ', color: '#4169E1', words: [
     { text: 'פיל', emoji: '🐘' }, { text: 'פרח', emoji: '🌸' }, { text: 'פרפר', emoji: '🦋' },
+    { text: 'פינגווין', emoji: '🐧' }, { text: 'פיצה', emoji: '🍕' }, { text: 'פנס', emoji: '🔦' }, { text: 'פסנתר', emoji: '🎹' },
   ]},
   { letter: 'צ', name: 'צָדִי', sound: 'צ', color: '#6B8E23', words: [
     { text: 'צב', emoji: '🐢' }, { text: 'ציפור', emoji: '🐦' }, { text: 'צפרדע', emoji: '🐸' },
+    { text: 'צבע', emoji: '🎨' }, { text: 'צלחת', emoji: '🍽️' }, { text: 'צעצוע', emoji: '🧸' },
   ]},
   { letter: 'ק', name: 'קוֹף', sound: 'ק', color: '#8B4513', words: [
     { text: 'קוף', emoji: '🐵' }, { text: 'קשת', emoji: '🌈' }, { text: 'קיפוד', emoji: '🦔' },
+    { text: 'קרח', emoji: '🧊' }, { text: 'קוביה', emoji: '🎲' }, { text: 'קרן', emoji: '🦄' }, { text: 'קסם', emoji: '🪄' },
   ]},
   { letter: 'ר', name: 'רֵישׁ', sound: 'ר', color: '#DC143C', words: [
     { text: 'רכבת', emoji: '🚂' }, { text: 'רגל', emoji: '🦶' }, { text: 'רובוט', emoji: '🤖' },
+    { text: 'רוח', emoji: '💨' }, { text: 'רימון', emoji: '🫐' }, { text: 'רקטה', emoji: '🚀' },
   ]},
   { letter: 'ש', name: 'שִׁין', sound: 'שׁ', color: '#FFD700', words: [
     { text: 'שמש', emoji: '☀️' }, { text: 'שועל', emoji: '🦊' }, { text: 'שעון', emoji: '⏰' },
+    { text: 'שוקולד', emoji: '🍫' }, { text: 'שלג', emoji: '❄️' }, { text: 'שושנה', emoji: '🌺' }, { text: 'שמלה', emoji: '👗' },
   ]},
   { letter: 'ת', name: 'תָּו', sound: 'תּ', color: '#FF4500', words: [
     { text: 'תפוח', emoji: '🍎' }, { text: 'תות', emoji: '🍓' }, { text: 'תרנגול', emoji: '🐓' },
+    { text: 'תנין', emoji: '🐊' }, { text: 'תמנון', emoji: '🐙' }, { text: 'תה', emoji: '🍵' }, { text: 'תכלת', emoji: '🔵' },
   ]},
 ];
+
+// Letters that look or sound similar - used to pick harder distractors
+const CONFUSABLES = {
+  'ב': ['כ', 'פ', 'ד'],
+  'כ': ['ב', 'ד', 'ר'],
+  'ד': ['ר', 'כ', 'ב'],
+  'ר': ['ד', 'כ', 'ו'],
+  'ו': ['ר', 'ז', 'י'],
+  'ז': ['ו', 'ג', 'נ'],
+  'ג': ['נ', 'ז'],
+  'נ': ['ג', 'ז'],
+  'ס': ['ש', 'צ', 'ע'],
+  'ש': ['ס', 'צ'],
+  'צ': ['ס', 'ש', 'ע'],
+  'ע': ['א', 'ס', 'צ'],
+  'א': ['ע', 'ה'],
+  'ה': ['א', 'ח', 'ע'],
+  'ח': ['ה', 'כ', 'ת'],
+  'ת': ['ח', 'ט'],
+  'ט': ['ת', 'מ'],
+  'מ': ['נ', 'ט'],
+  'פ': ['ב', 'כ'],
+  'ק': ['כ'],
+  'י': ['ו'],
+  'ל': ['כ'],
+};
+
+// Pick smart distractors: prefer confusable letters, then random
+function pickDistractors(target, count) {
+  const confusable = (CONFUSABLES[target.letter] || [])
+    .map(l => LETTERS.find(x => x.letter === l))
+    .filter(Boolean)
+    .sort(() => Math.random() - 0.5);
+  const others = LETTERS.filter(l => l.letter !== target.letter && !confusable.includes(l))
+    .sort(() => Math.random() - 0.5);
+  const pool = [...confusable, ...others];
+  return pool.slice(0, count);
+}
 
 const ENCOURAGEMENTS = [
   'כל הכבוד! 🎉', 'מצוין! 🌟', 'אלוף! 🏆', 'וואו! 🤩', 'נהדר! ✨', 'סחתיין! 💪',
@@ -725,11 +785,13 @@ function GameScreen({ speak, addStars, addGame, addStreak, resetStreak, onBack, 
   const [streak, setStreak] = useState(0);
   const playSound = useSound();
   const safeTimeout = useSafeTimeouts();
+  const prevTarget = useRef(null);
 
   const numOptions = progress.level >= 3 ? 4 : progress.level >= 2 ? 3 : 2;
 
   const newRound = useCallback(() => {
-    const data = generateRound(numOptions);
+    const data = generateRound(numOptions, prevTarget.current);
+    prevTarget.current = data.target.letter;
     setRoundData(data);
     setSelected(null);
     setFeedback(null);
@@ -950,10 +1012,11 @@ function FindGameWrapper(props) {
     bgGradient: 'linear-gradient(180deg, #FDE8EF 0%, #FFF8E7 100%)',
     description: 'שמע את הצליל ומצא איזו אות עושה אותו!',
     TOTAL: 5,
-    generateRound: (numOpts) => {
-      const shuffled = [...LETTERS].sort(() => Math.random() - 0.5);
-      const t = shuffled[0];
-      const opts = [t, ...shuffled.slice(1, numOpts)].sort(() => Math.random() - 0.5);
+    generateRound: (numOpts, prevLetter) => {
+      let candidates = LETTERS.filter(l => l.letter !== prevLetter);
+      const t = candidates[Math.floor(Math.random() * candidates.length)];
+      const distractors = pickDistractors(t, numOpts - 1);
+      const opts = [t, ...distractors].sort(() => Math.random() - 0.5);
       return { target: t, options: opts, speakText: t.sound, retryText: `נסה שוב!` };
     },
     questionText: (data) => (
@@ -990,11 +1053,12 @@ function MatchGameWrapper(props) {
     bgGradient: 'linear-gradient(180deg, #EDE7F6 0%, #FFF8E7 100%)',
     description: 'ראה את התמונה ובחר באיזו אות המילה מתחילה!',
     TOTAL: 5,
-    generateRound: (numOpts) => {
-      const shuffled = [...LETTERS].sort(() => Math.random() - 0.5);
-      const t = shuffled[0];
+    generateRound: (numOpts, prevLetter) => {
+      let candidates = LETTERS.filter(l => l.letter !== prevLetter);
+      const t = candidates[Math.floor(Math.random() * candidates.length)];
       const w = t.words[Math.floor(Math.random() * t.words.length)];
-      const opts = [t, ...shuffled.slice(1, numOpts)].sort(() => Math.random() - 0.5);
+      const distractors = pickDistractors(t, numOpts - 1);
+      const opts = [t, ...distractors].sort(() => Math.random() - 0.5);
       return { target: t, word: w, options: opts, speakText: `${w.text}. באיזו אות מתחיל?`, retryText: 'נסה שוב!' };
     },
     questionText: (data) => (
@@ -1027,10 +1091,11 @@ function SoundGameWrapper(props) {
     bgGradient: 'linear-gradient(180deg, #FFF3E0 0%, #FFF8E7 100%)',
     description: 'שמע את צליל האות ובחר איזו אות עושה את הצליל הזה!',
     TOTAL: 5,
-    generateRound: (numOpts) => {
-      const shuffled = [...LETTERS].sort(() => Math.random() - 0.5);
-      const t = shuffled[0];
-      const opts = [t, ...shuffled.slice(1, numOpts)].sort(() => Math.random() - 0.5);
+    generateRound: (numOpts, prevLetter) => {
+      let candidates = LETTERS.filter(l => l.letter !== prevLetter);
+      const t = candidates[Math.floor(Math.random() * candidates.length)];
+      const distractors = pickDistractors(t, numOpts - 1);
+      const opts = [t, ...distractors].sort(() => Math.random() - 0.5);
       return { target: t, options: opts, speakText: `${t.sound}`, retryText: `זה הצליל של ${t.name}. נסה שוב!` };
     },
     questionText: (data) => (
