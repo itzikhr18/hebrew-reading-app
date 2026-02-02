@@ -1072,8 +1072,7 @@ function MatchGameWrapper(props) {
       }}>
         <span style={{ fontSize: 56, animation: 'bounce 2s ease infinite', filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.1))' }}>{data.word?.emoji}</span>
         <span style={{ fontSize: 24, fontWeight: 700, marginTop: 5, fontFamily: "'Rubik', sans-serif", color: '#2D3436' }}>
-          <span style={{ color: data.target.color, fontSize: 28 }}>{data.word?.text[0]}</span>
-          {data.word?.text.slice(1)}
+          {data.word?.text}
         </span>
         <span style={{ fontSize: 13, color: '#aaa', marginTop: 4, fontFamily: "'Rubik', sans-serif" }}>באיזו אות מתחיל? 🤔</span>
       </div>
