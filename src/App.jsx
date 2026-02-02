@@ -1,20 +1,17 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
 /*
- * אפליקציית לימוד קריאה לילדים - גרסה 8.0
- * עיצוב מחדש מלא - כפתורי CSS, ניווט ברור, UI ילדותי ונקי
+ * אפליקציית לימוד קריאה לילדים - גרסה 9.0
+ * שדרוג חינוכי + ויזואלי מלא
  */
 
-// ==================== ASSETS PATHS ====================
+// ==================== ASSETS ====================
 const ASSETS = {
   images: {
     mascotHappy: './assets/images/mascot_happy.png',
     mascotCelebrate: './assets/images/mascot_celebrate.png',
     mascotThinking: './assets/images/mascot_thinking.png',
     mascotEncourage: './assets/images/mascot_encourage.png',
-    bgHome: './assets/images/bg_home.png',
-    bgLearn: './assets/images/bg_learn.png',
-    bgGame: './assets/images/bg_game.png',
   },
   audio: {
     success: './assets/audio/sound_success.mp3',
@@ -93,6 +90,17 @@ const LETTERS = [
   ]},
 ];
 
+const ENCOURAGEMENTS = [
+  'כל הכבוד! 🎉', 'מצוין! 🌟', 'אלוף! 🏆', 'וואו! 🤩', 'נהדר! ✨', 'סחתיין! 💪',
+  'יופי! 🥳', 'מדהים! 🔥', 'עפנו! 🚀', 'תותח! 💥',
+];
+
+const RETRY_MESSAGES = [
+  'ננסה שוב! 💪', 'כמעט! 🤏', 'אל תוותר! 💫', 'עוד פעם! 🔄', 'בוא ננסה! 😊',
+];
+
+function randomFrom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
 // ==================== HOOKS ====================
 function useSpeech() {
   const synth = useRef(null);
@@ -100,7 +108,6 @@ function useSpeech() {
     synth.current = window.speechSynthesis;
     return () => { if (synth.current) synth.current.cancel(); };
   }, []);
-
   const speak = useCallback((text) => {
     if (!synth.current) return;
     synth.current.cancel();
@@ -109,7 +116,6 @@ function useSpeech() {
     u.rate = 0.85;
     synth.current.speak(u);
   }, []);
-
   return speak;
 }
 
@@ -121,9 +127,9 @@ function useSound() {
         audioCache.current[type] = new Audio(ASSETS.audio[type]);
         audioCache.current[type].volume = 0.5;
       }
-      const audio = audioCache.current[type];
-      audio.currentTime = 0;
-      audio.play().catch((e) => console.warn('Audio failed:', type, e.message));
+      const a = audioCache.current[type];
+      a.currentTime = 0;
+      a.play().catch((e) => console.warn('Audio failed:', type, e.message));
     } catch (e) { console.warn('Audio error:', type, e.message); }
   }, []);
   return play;
@@ -132,54 +138,135 @@ function useSound() {
 function useProgress() {
   const [data, setData] = useState(() => {
     try {
-      const saved = localStorage.getItem('hebrew_app_v8');
-      return saved ? JSON.parse(saved) : { learned: [], stars: 0, games: 0 };
-    } catch { return { learned: [], stars: 0, games: 0 }; }
+      const saved = localStorage.getItem('hebrew_app_v9');
+      return saved ? JSON.parse(saved) : { learned: [], stars: 0, games: 0, streak: 0, bestStreak: 0, level: 1 };
+    } catch { return { learned: [], stars: 0, games: 0, streak: 0, bestStreak: 0, level: 1 }; }
   });
-
   useEffect(() => {
-    try { localStorage.setItem('hebrew_app_v8', JSON.stringify(data)); } catch {}
+    try { localStorage.setItem('hebrew_app_v9', JSON.stringify(data)); } catch {}
   }, [data]);
-
   const addLetter = useCallback((letter) => {
     setData(d => ({ ...d, learned: d.learned.includes(letter) ? d.learned : [...d.learned, letter] }));
   }, []);
-  const addStars = useCallback((n) => setData(d => ({ ...d, stars: d.stars + n })), []);
+  const addStars = useCallback((n) => setData(d => {
+    const newStars = d.stars + n;
+    const newLevel = Math.floor(newStars / 20) + 1;
+    return { ...d, stars: newStars, level: Math.max(d.level, newLevel) };
+  }), []);
   const addGame = useCallback(() => setData(d => ({ ...d, games: d.games + 1 })), []);
+  const addStreak = useCallback(() => setData(d => {
+    const s = d.streak + 1;
+    return { ...d, streak: s, bestStreak: Math.max(s, d.bestStreak) };
+  }), []);
+  const resetStreak = useCallback(() => setData(d => ({ ...d, streak: 0 })), []);
+  return { data, addLetter, addStars, addGame, addStreak, resetStreak };
+}
 
-  return { data, addLetter, addStars, addGame };
+function useSafeTimeouts() {
+  const timers = useRef([]);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; timers.current.forEach(clearTimeout); timers.current = []; };
+  }, []);
+  const safeTimeout = useCallback((fn, delay) => {
+    const id = setTimeout(() => { if (mounted.current) fn(); }, delay);
+    timers.current.push(id);
+    return id;
+  }, []);
+  return safeTimeout;
 }
 
 // ==================== UI COMPONENTS ====================
 
+function FloatingParticles() {
+  const particles = useMemo(() => {
+    const emojis = ['⭐', '✨', '💫', '🌟', '🎵', '❤️', '🌈'];
+    return Array.from({ length: 8 }, (_, i) => ({
+      emoji: emojis[i % emojis.length],
+      left: `${10 + (i * 12) % 80}%`,
+      delay: i * 0.7,
+      duration: 4 + (i % 3),
+      size: 14 + (i % 3) * 4,
+    }));
+  }, []);
+
+  return (
+    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 0 }}>
+      {particles.map((p, i) => (
+        <span key={i} style={{
+          position: 'absolute', top: `${10 + (i * 15) % 70}%`, left: p.left,
+          fontSize: p.size, opacity: 0.15,
+          animation: `float ${p.duration}s ease infinite`,
+          animationDelay: `${p.delay}s`,
+        }}>{p.emoji}</span>
+      ))}
+    </div>
+  );
+}
+
+function ConfettiEffect({ active }) {
+  const pieces = useMemo(() => {
+    const colors = ['#FF6B6B', '#4ECDC4', '#FFD93D', '#FF69B4', '#9B59B6', '#3498DB', '#2ECC71'];
+    return Array.from({ length: 30 }, (_, i) => ({
+      color: colors[i % colors.length],
+      left: `${Math.random() * 100}%`,
+      delay: Math.random() * 0.5,
+      duration: 1.5 + Math.random() * 1.5,
+      size: 6 + Math.random() * 8,
+    }));
+  }, []);
+
+  if (!active) return null;
+  return (
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', zIndex: 3000 }}>
+      {pieces.map((p, i) => (
+        <div key={i} style={{
+          position: 'absolute', top: -10, left: p.left,
+          width: p.size, height: p.size, borderRadius: i % 2 ? '50%' : '2px',
+          background: p.color,
+          animation: `confettiDrop ${p.duration}s ease forwards`,
+          animationDelay: `${p.delay}s`,
+        }} />
+      ))}
+    </div>
+  );
+}
+
+function StreakBadge({ streak }) {
+  if (streak < 2) return null;
+  const fire = streak >= 5 ? '🔥🔥' : streak >= 3 ? '🔥' : '⚡';
+  return (
+    <div style={{
+      position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)',
+      background: streak >= 5 ? 'linear-gradient(135deg, #FF6B00, #FF4500)' : 'linear-gradient(135deg, #FFD93D, #FF9800)',
+      color: 'white', padding: '4px 14px', borderRadius: 20,
+      fontSize: 13, fontWeight: 700, fontFamily: "'Rubik', sans-serif",
+      boxShadow: '0 3px 12px rgba(255,152,0,0.4)',
+      animation: 'popIn 0.3s ease', zIndex: 50, whiteSpace: 'nowrap',
+    }}>
+      {fire} רצף {streak}!
+    </div>
+  );
+}
+
 function Button({ children, onClick, color = '#4ECDC4', size = 'medium', icon, disabled, style }) {
   const sizes = {
-    small: { padding: '8px 16px', fontSize: 14, borderRadius: 12 },
-    medium: { padding: '12px 24px', fontSize: 18, borderRadius: 16 },
-    large: { padding: '16px 36px', fontSize: 22, borderRadius: 20 },
+    small: { padding: '8px 16px', fontSize: 14, borderRadius: 14 },
+    medium: { padding: '12px 28px', fontSize: 18, borderRadius: 18 },
+    large: { padding: '16px 40px', fontSize: 22, borderRadius: 22 },
   };
   const s = sizes[size] || sizes.medium;
   return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
+    <button onClick={onClick} disabled={disabled}
       style={{
-        ...s,
-        border: 'none',
-        background: `linear-gradient(180deg, ${color}, ${color}dd)`,
-        color: 'white',
-        fontFamily: "'Rubik', sans-serif",
-        fontWeight: 700,
-        cursor: disabled ? 'default' : 'pointer',
-        opacity: disabled ? 0.5 : 1,
-        boxShadow: `0 4px 15px ${color}44`,
-        transition: 'transform 0.15s, box-shadow 0.15s',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        whiteSpace: 'nowrap',
-        ...style,
+        ...s, border: 'none',
+        background: `linear-gradient(180deg, ${color}, ${color}cc)`,
+        color: 'white', fontFamily: "'Rubik', sans-serif", fontWeight: 700,
+        cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.5 : 1,
+        boxShadow: `0 4px 18px ${color}44`, transition: 'transform 0.15s, box-shadow 0.15s',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+        whiteSpace: 'nowrap', ...style,
       }}
     >
       {icon && <span style={{ fontSize: s.fontSize + 4 }}>{icon}</span>}
@@ -190,32 +277,21 @@ function Button({ children, onClick, color = '#4ECDC4', size = 'medium', icon, d
 
 function IconButton({ children, onClick, color = '#aaa', style }) {
   return (
-    <button
-      onClick={onClick}
+    <button onClick={onClick}
       style={{
-        width: 44, height: 44,
-        borderRadius: '50%',
-        border: 'none',
-        background: color,
-        color: 'white',
-        fontSize: 20,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        cursor: 'pointer',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-        transition: 'transform 0.15s',
-        ...style,
+        width: 44, height: 44, borderRadius: '50%', border: 'none',
+        background: color, color: 'white', fontSize: 20,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        cursor: 'pointer', boxShadow: '0 3px 10px rgba(0,0,0,0.15)',
+        transition: 'transform 0.15s', ...style,
       }}
-    >
-      {children}
-    </button>
+    >{children}</button>
   );
 }
 
-function NavBar({ current, onNavigate, stars }) {
+function NavBar({ current, onNavigate, stars, level }) {
   const items = [
-    { id: 'achievements', label: 'הישגים', icon: '⭐' },
+    { id: 'achievements', label: 'הישגים', icon: '🏆' },
     { id: 'learn', label: 'לימוד', icon: '📖' },
     { id: 'home', label: 'בית', icon: '🏠' },
   ];
@@ -223,44 +299,37 @@ function NavBar({ current, onNavigate, stars }) {
     <div style={{
       position: 'absolute', bottom: 0, left: 0, right: 0, height: 70,
       display: 'flex', alignItems: 'center', justifyContent: 'space-around',
-      background: 'white', borderRadius: '20px 20px 0 0',
-      boxShadow: '0 -4px 20px rgba(0,0,0,0.08)', zIndex: 100,
+      background: 'white', borderRadius: '22px 22px 0 0',
+      boxShadow: '0 -4px 25px rgba(0,0,0,0.08)', zIndex: 100,
     }}>
-      {items.map(item => (
-        <button
-          key={item.id}
-          onClick={() => onNavigate(item.id)}
-          style={{
-            border: 'none', background: 'transparent', cursor: 'pointer',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-            padding: '6px 16px', borderRadius: 12,
-            backgroundColor: current === item.id ? '#FFF3E0' : 'transparent',
-            transition: 'background-color 0.2s',
-          }}
-        >
-          <span style={{ fontSize: 24, position: 'relative' }}>
-            {item.icon}
-            {item.id === 'achievements' && stars > 0 && (
-              <span style={{
-                position: 'absolute', top: -6, right: -10,
-                background: '#FF4081', color: 'white', fontSize: 10, fontWeight: 700,
-                minWidth: 18, height: 18, borderRadius: 9,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>{stars > 99 ? '99+' : stars}</span>
-            )}
-          </span>
-          <span style={{
-            fontSize: 12, fontWeight: current === item.id ? 700 : 500,
-            color: current === item.id ? '#FF6B00' : '#888',
-            fontFamily: "'Rubik', sans-serif",
-          }}>{item.label}</span>
-        </button>
-      ))}
+      {items.map(item => {
+        const isActive = current === item.id;
+        return (
+          <button key={item.id} onClick={() => onNavigate(item.id)}
+            style={{
+              border: 'none', background: 'transparent', cursor: 'pointer',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+              padding: '6px 18px', borderRadius: 14,
+              backgroundColor: isActive ? '#FFF3E0' : 'transparent',
+              transition: 'all 0.2s',
+            }}
+          >
+            <span style={{ fontSize: 24, transition: 'transform 0.2s', transform: isActive ? 'scale(1.15)' : 'scale(1)' }}>
+              {item.icon}
+            </span>
+            <span style={{
+              fontSize: 11, fontWeight: isActive ? 700 : 500,
+              color: isActive ? '#FF6B00' : '#999',
+              fontFamily: "'Rubik', sans-serif",
+            }}>{item.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
 
-function Feedback({ type }) {
+function Feedback({ type, message }) {
   const playSound = useSound();
   useEffect(() => {
     playSound(type === 'success' ? 'success' : 'wrong');
@@ -271,39 +340,55 @@ function Feedback({ type }) {
     <div style={{
       position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      zIndex: 2000, background: 'rgba(0,0,0,0.4)',
+      zIndex: 2000, background: 'rgba(0,0,0,0.4)', animation: 'fadeIn 0.2s ease',
     }}>
       <div style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center',
-        padding: '30px 40px', borderRadius: 28, background: 'white',
-        boxShadow: '0 10px 50px rgba(0,0,0,0.3)', animation: 'popIn 0.3s ease',
+        padding: '30px 45px', borderRadius: 28, background: 'white',
+        boxShadow: '0 15px 50px rgba(0,0,0,0.25)', animation: 'popIn 0.35s ease',
       }}>
         <img
           src={isSuccess ? ASSETS.images.mascotCelebrate : ASSETS.images.mascotEncourage}
-          alt="" style={{ width: 120, height: 120, objectFit: 'contain' }}
+          alt="" style={{ width: 110, height: 110, objectFit: 'contain' }}
         />
         <div style={{
           fontSize: 26, fontWeight: 700, marginTop: 10,
-          color: isSuccess ? '#4CAF50' : '#FF9800',
+          color: isSuccess ? '#4CAF50' : '#FF9800', fontFamily: "'Rubik', sans-serif",
         }}>
-          {isSuccess ? 'כל הכבוד! 🎉' : 'ננסה שוב! 💪'}
+          {message || (isSuccess ? randomFrom(ENCOURAGEMENTS) : randomFrom(RETRY_MESSAGES))}
         </div>
       </div>
     </div>
   );
 }
 
-function ProgressBar({ current, total }) {
+function ProgressBar({ current, total, color }) {
   return (
     <div style={{
       width: '100%', maxWidth: 280, height: 10, borderRadius: 5,
-      background: 'rgba(255,255,255,0.5)', overflow: 'hidden',
+      background: 'rgba(0,0,0,0.08)', overflow: 'hidden',
     }}>
       <div style={{
         width: `${(current / total) * 100}%`, height: '100%', borderRadius: 5,
-        background: 'linear-gradient(90deg, #FFD93D, #FF6B00)',
+        background: color || 'linear-gradient(90deg, #FFD93D, #FF6B00)',
         transition: 'width 0.5s ease',
       }} />
+    </div>
+  );
+}
+
+function LevelBadge({ level }) {
+  const titles = ['', 'מתחיל', 'חוקר', 'יודע', 'מומחה', 'גאון', 'אלוף'];
+  const colors = ['', '#78909C', '#4ECDC4', '#2196F3', '#9C27B0', '#FF6B00', '#FFD700'];
+  const l = Math.min(level, 6);
+  return (
+    <div style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4,
+      background: `${colors[l]}22`, color: colors[l],
+      padding: '3px 10px', borderRadius: 10,
+      fontSize: 12, fontWeight: 700, fontFamily: "'Rubik', sans-serif",
+    }}>
+      רמה {l}: {titles[l]}
     </div>
   );
 }
@@ -322,9 +407,10 @@ function HomeScreen({ onActivity, speak, progress }) {
   useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
 
   const activities = [
-    { id: 'learn', icon: '📖', label: 'לימוד אותיות', desc: 'למד את האותיות עם מילים ותמונות', color: '#4ECDC4' },
-    { id: 'find', icon: '🔍', label: 'מצא את האות', desc: 'שמע את שם האות ומצא אותה', color: '#FF6B6B' },
-    { id: 'match', icon: '🎯', label: 'התאם לתמונה', desc: 'ראה תמונה ובחר את האות הנכונה', color: '#9B59B6' },
+    { id: 'learn', icon: '📖', label: 'לימוד אותיות', desc: 'למד את האותיות, הצלילים והמילים', color: '#4ECDC4', gradient: 'linear-gradient(135deg, #E0F7FA, #B2EBF2)' },
+    { id: 'find', icon: '🔍', label: 'מצא את האות', desc: 'שמע את שם האות ומצא אותה!', color: '#FF6B6B', gradient: 'linear-gradient(135deg, #FFEBEE, #FFCDD2)' },
+    { id: 'match', icon: '🎯', label: 'התאם לתמונה', desc: 'ראה תמונה ובחר את האות הנכונה', color: '#9B59B6', gradient: 'linear-gradient(135deg, #F3E5F5, #E1BEE7)' },
+    { id: 'sound', icon: '🎵', label: 'זהה את הצליל', desc: 'שמע צליל ובחר איזו אות עושה אותו', color: '#FF9800', gradient: 'linear-gradient(135deg, #FFF3E0, #FFE0B2)' },
   ];
 
   return (
@@ -333,24 +419,33 @@ function HomeScreen({ onActivity, speak, progress }) {
       display: 'flex', flexDirection: 'column', alignItems: 'center',
       overflow: 'auto', zIndex: 1,
     }}>
-      {/* Background */}
       <div style={{
         position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0,
         background: 'linear-gradient(180deg, #FFF8E7 0%, #FFE8EC 50%, #E8F4FD 100%)',
       }} />
+      <FloatingParticles />
 
-      <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 420, padding: '20px 20px 30px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <div style={{
+        position: 'relative', zIndex: 1, width: '100%', maxWidth: 420,
+        padding: '15px 20px 30px', display: 'flex', flexDirection: 'column', alignItems: 'center',
+      }}>
         {/* Mascot & Title */}
-        <img src={ASSETS.images.mascotHappy} alt="ינשוף" style={{ width: 110, height: 110, objectFit: 'contain', marginBottom: 5 }} />
+        <img src={ASSETS.images.mascotHappy} alt="ינשוף" style={{
+          width: 100, height: 100, objectFit: 'contain',
+          animation: 'float 3s ease infinite', marginBottom: 5,
+        }} />
         <h1 style={{
           fontSize: 34, fontWeight: 700, color: '#2D3436', textAlign: 'center',
-          fontFamily: "'Rubik', sans-serif", margin: '0 0 5px',
+          fontFamily: "'Rubik', sans-serif", margin: '0 0 2px',
           textShadow: '0 2px 4px rgba(0,0,0,0.08)',
-        }}>לומדים לקרוא!</h1>
-        <p style={{ fontSize: 16, color: '#777', marginBottom: 20, fontFamily: "'Rubik', sans-serif" }}>בחר פעילות להתחיל</p>
+        }}>לומדים לקרוא! 🦉</h1>
+        <LevelBadge level={progress.level} />
+        <p style={{ fontSize: 15, color: '#888', marginTop: 6, marginBottom: 16, fontFamily: "'Rubik', sans-serif" }}>
+          בחר פעילות להתחיל
+        </p>
 
         {/* Activity Cards */}
-        {activities.map(act => (
+        {activities.map((act, i) => (
           <div
             key={act.id}
             onClick={() => {
@@ -360,43 +455,49 @@ function HomeScreen({ onActivity, speak, progress }) {
               timerRef.current = setTimeout(() => onActivity(act.id), 400);
             }}
             style={{
-              width: '100%', display: 'flex', alignItems: 'center', gap: 15,
-              padding: '16px 20px', marginBottom: 12,
-              background: 'white', borderRadius: 20,
-              border: `3px solid ${act.color}33`,
-              boxShadow: '0 4px 15px rgba(0,0,0,0.06)',
+              width: '100%', display: 'flex', alignItems: 'center', gap: 14,
+              padding: '14px 18px', marginBottom: 10,
+              background: act.gradient, borderRadius: 20,
+              border: `2px solid ${act.color}33`,
+              boxShadow: '0 4px 15px rgba(0,0,0,0.05)',
               cursor: 'pointer', transition: 'transform 0.2s',
+              animation: `fadeInUp 0.4s ease forwards`,
+              animationDelay: `${i * 0.1}s`, opacity: 0,
             }}
           >
             <div style={{
-              width: 55, height: 55, borderRadius: 16,
-              background: `${act.color}22`, display: 'flex',
-              alignItems: 'center', justifyContent: 'center', fontSize: 28, flexShrink: 0,
+              width: 52, height: 52, borderRadius: 16,
+              background: 'white', display: 'flex',
+              alignItems: 'center', justifyContent: 'center',
+              fontSize: 26, flexShrink: 0,
+              boxShadow: `0 3px 10px ${act.color}22`,
             }}>
               {act.icon}
             </div>
             <div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: '#2D3436', fontFamily: "'Rubik', sans-serif" }}>{act.label}</div>
-              <div style={{ fontSize: 13, color: '#999', fontFamily: "'Rubik', sans-serif", marginTop: 2 }}>{act.desc}</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#2D3436', fontFamily: "'Rubik', sans-serif" }}>{act.label}</div>
+              <div style={{ fontSize: 12, color: '#888', fontFamily: "'Rubik', sans-serif", marginTop: 2 }}>{act.desc}</div>
             </div>
+            <span style={{ marginRight: 'auto', fontSize: 18, color: '#ccc' }}>❮</span>
           </div>
         ))}
 
         {/* Stats */}
-        <div style={{ display: 'flex', gap: 12, marginTop: 10, width: '100%' }}>
+        <div style={{ display: 'flex', gap: 10, marginTop: 12, width: '100%' }}>
           {[
-            { icon: '⭐', val: progress.stars, label: 'כוכבים' },
-            { icon: '🔤', val: progress.learned.length, label: 'אותיות' },
-            { icon: '🎮', val: progress.games, label: 'משחקים' },
+            { icon: '⭐', val: progress.stars, label: 'כוכבים', color: '#FFB800' },
+            { icon: '🔤', val: `${progress.learned.length}/${LETTERS.length}`, label: 'אותיות', color: '#4ECDC4' },
+            { icon: '🔥', val: progress.bestStreak, label: 'שיא רצף', color: '#FF6B00' },
           ].map((s, i) => (
             <div key={i} style={{
               flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-              background: 'white', padding: '12px 8px', borderRadius: 16,
-              boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
+              background: 'white', padding: '10px 6px', borderRadius: 16,
+              boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
+              animation: `fadeInUp 0.4s ease forwards`, animationDelay: `${0.4 + i * 0.1}s`, opacity: 0,
             }}>
-              <span style={{ fontSize: 22 }}>{s.icon}</span>
-              <span style={{ fontSize: 22, fontWeight: 700, color: '#2D3436', fontFamily: "'Rubik', sans-serif" }}>{s.val}</span>
-              <span style={{ fontSize: 11, color: '#999', fontFamily: "'Rubik', sans-serif" }}>{s.label}</span>
+              <span style={{ fontSize: 20 }}>{s.icon}</span>
+              <span style={{ fontSize: 20, fontWeight: 700, color: s.color, fontFamily: "'Rubik', sans-serif" }}>{s.val}</span>
+              <span style={{ fontSize: 10, color: '#aaa', fontFamily: "'Rubik', sans-serif" }}>{s.label}</span>
             </div>
           ))}
         </div>
@@ -409,7 +510,9 @@ function LearnScreen({ speak, progress, addLetter, addStars, onBack }) {
   const [idx, setIdx] = useState(0);
   const [wordIdx, setWordIdx] = useState(0);
   const [showFeedback, setShowFeedback] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
   const playSound = useSound();
+  const safeTimeout = useSafeTimeouts();
 
   const letter = LETTERS[idx];
   const word = letter.words[wordIdx];
@@ -424,12 +527,8 @@ function LearnScreen({ speak, progress, addLetter, addStars, onBack }) {
   }, [idx, wordIdx, speakNow]);
 
   const goNext = () => {
-    if (wordIdx < letter.words.length - 1) {
-      setWordIdx(w => w + 1);
-    } else {
-      setWordIdx(0);
-      setIdx(i => (i + 1) % LETTERS.length);
-    }
+    if (wordIdx < letter.words.length - 1) setWordIdx(w => w + 1);
+    else { setWordIdx(0); setIdx(i => (i + 1) % LETTERS.length); }
   };
 
   const goPrev = () => {
@@ -442,7 +541,20 @@ function LearnScreen({ speak, progress, addLetter, addStars, onBack }) {
     addLetter(letter.letter);
     addStars(1);
     setShowFeedback(true);
-    setTimeout(() => { setShowFeedback(false); goNext(); }, 1500);
+    setShowConfetti(true);
+    safeTimeout(() => { setShowFeedback(false); setShowConfetti(false); goNext(); }, 1800);
+  };
+
+  // Highlight the first letter in the word
+  const renderWord = () => {
+    const first = word.text[0];
+    const rest = word.text.slice(1);
+    return (
+      <span style={{ fontSize: 30, fontWeight: 700, fontFamily: "'Rubik', sans-serif" }}>
+        <span style={{ color: letter.color, fontSize: 34 }}>{first}</span>
+        <span style={{ color: '#2D3436' }}>{rest}</span>
+      </span>
+    );
   };
 
   return (
@@ -452,75 +564,83 @@ function LearnScreen({ speak, progress, addLetter, addStars, onBack }) {
     }}>
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0,
-        background: 'linear-gradient(180deg, #E8F8F5 0%, #FFF8E7 100%)',
+        background: `linear-gradient(180deg, ${letter.color}11 0%, #FFF8E7 100%)`,
       }} />
-
+      <FloatingParticles />
+      <ConfettiEffect active={showConfetti} />
       {showFeedback && <Feedback type="success" />}
 
       {/* Header */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '12px 16px', position: 'relative', zIndex: 1, flexShrink: 0,
+        padding: '10px 16px', position: 'relative', zIndex: 1, flexShrink: 0,
       }}>
         <IconButton onClick={onBack} color="#ccc">✕</IconButton>
         <div style={{
-          background: 'white', padding: '6px 16px', borderRadius: 20,
-          fontSize: 15, fontWeight: 600, color: '#555', fontFamily: "'Rubik', sans-serif",
-          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+          background: 'white', padding: '5px 14px', borderRadius: 20,
+          fontSize: 14, fontWeight: 600, color: '#555', fontFamily: "'Rubik', sans-serif",
+          boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
         }}>
           אות {idx + 1} מתוך {LETTERS.length}
         </div>
         <IconButton onClick={speakNow} color="#2196F3">🔊</IconButton>
       </div>
 
-      {/* Progress bar */}
       <div style={{ display: 'flex', justifyContent: 'center', padding: '0 20px', position: 'relative', zIndex: 1 }}>
-        <ProgressBar current={idx + 1} total={LETTERS.length} />
+        <ProgressBar current={idx + 1} total={LETTERS.length} color={letter.color} />
       </div>
 
       {/* Content */}
       <div style={{
         flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-        justifyContent: 'center', padding: '10px 20px', position: 'relative', zIndex: 1,
-        minHeight: 0,
+        justifyContent: 'center', padding: '8px 20px', position: 'relative', zIndex: 1, minHeight: 0,
       }}>
         {/* Letter Circle */}
         <div style={{
-          width: 160, height: 160, borderRadius: '50%',
+          width: 150, height: 150, borderRadius: '50%',
           background: 'white', display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center',
-          boxShadow: `0 8px 30px ${letter.color}33`,
+          boxShadow: `0 8px 35px ${letter.color}33`,
           border: `4px solid ${letter.color}`,
-          marginBottom: 15,
+          marginBottom: 12, animation: 'popIn 0.4s ease',
         }}>
-          <span style={{ fontSize: 80, fontWeight: 700, color: letter.color, lineHeight: 1 }}>{letter.letter}</span>
-          <span style={{ fontSize: 15, color: '#777', fontFamily: "'Rubik', sans-serif", marginTop: 2 }}>{letter.name}</span>
+          <span style={{ fontSize: 72, fontWeight: 700, color: letter.color, lineHeight: 1 }}>{letter.letter}</span>
+          <span style={{ fontSize: 14, color: '#777', fontFamily: "'Rubik', sans-serif", marginTop: 2 }}>{letter.name}</span>
         </div>
 
-        {/* Word & Emoji */}
+        {/* Sound info */}
+        <div style={{
+          background: `${letter.color}15`, padding: '6px 18px', borderRadius: 14,
+          marginBottom: 10, animation: 'fadeInUp 0.4s ease 0.1s forwards', opacity: 0,
+        }}>
+          <span style={{ fontSize: 15, color: letter.color, fontWeight: 600, fontFamily: "'Rubik', sans-serif" }}>
+            🔈 האות אומרת: &quot;{letter.sound}&quot;
+          </span>
+        </div>
+
+        {/* Word Card */}
         <div style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center',
-          background: 'white', padding: '15px 30px', borderRadius: 20,
-          boxShadow: '0 4px 15px rgba(0,0,0,0.06)',
+          background: 'white', padding: '14px 30px', borderRadius: 22,
+          boxShadow: '0 4px 18px rgba(0,0,0,0.06)',
+          animation: 'fadeInUp 0.4s ease 0.2s forwards', opacity: 0,
         }}>
-          <span style={{ fontSize: 55 }}>{word.emoji}</span>
-          <span style={{
-            fontSize: 28, fontWeight: 700, color: '#2D3436', marginTop: 8,
-            fontFamily: "'Rubik', sans-serif",
-          }}>{word.text}</span>
-          <span style={{ fontSize: 14, color: '#aaa', marginTop: 4, fontFamily: "'Rubik', sans-serif" }}>
-            מתחיל באות {letter.name}
+          <span style={{ fontSize: 50, animation: 'bounce 2s ease infinite' }}>{word.emoji}</span>
+          <div style={{ marginTop: 8 }}>{renderWord()}</div>
+          <span style={{ fontSize: 13, color: '#aaa', marginTop: 4, fontFamily: "'Rubik', sans-serif" }}>
+            מתחיל באות <span style={{ color: letter.color, fontWeight: 700 }}>{letter.letter}</span>
           </span>
         </div>
 
         {/* Dots */}
-        <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+        <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
           {letter.words.map((_, i) => (
             <span key={i} style={{
               width: 10, height: 10, borderRadius: '50%',
               background: i === wordIdx ? letter.color : '#ddd',
               transition: 'all 0.3s',
-              transform: i === wordIdx ? 'scale(1.3)' : 'scale(1)',
+              transform: i === wordIdx ? 'scale(1.4)' : 'scale(1)',
+              boxShadow: i === wordIdx ? `0 0 8px ${letter.color}66` : 'none',
             }} />
           ))}
         </div>
@@ -529,7 +649,7 @@ function LearnScreen({ speak, progress, addLetter, addStars, onBack }) {
       {/* Bottom Actions */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        gap: 12, padding: '12px 20px', position: 'relative', zIndex: 1, flexShrink: 0,
+        gap: 10, padding: '10px 20px', position: 'relative', zIndex: 1, flexShrink: 0,
       }}>
         <Button onClick={goPrev} color="#BDBDBD" size="small" icon="→">הקודם</Button>
         <Button onClick={handleLearned} color="#4CAF50" size="large" icon="✓">למדתי!</Button>
@@ -539,61 +659,73 @@ function LearnScreen({ speak, progress, addLetter, addStars, onBack }) {
   );
 }
 
-function FindGameScreen({ speak, addStars, addGame, onBack }) {
+// Game wrapper for shared logic between Find, Match, and Sound games
+function GameScreen({ speak, addStars, addGame, addStreak, resetStreak, onBack, progress, gameConfig }) {
+  const { title, icon, color, bgGradient, generateRound, questionText, getOptions, TOTAL } = gameConfig;
   const [phase, setPhase] = useState('intro');
   const [round, setRound] = useState(0);
   const [score, setScore] = useState(0);
-  const [target, setTarget] = useState(null);
-  const [options, setOptions] = useState([]);
+  const [roundData, setRoundData] = useState(null);
   const [selected, setSelected] = useState(null);
   const [feedback, setFeedback] = useState(null);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [streak, setStreak] = useState(0);
   const playSound = useSound();
-  const TOTAL = 5;
-  const timersRef = useRef([]);
-  const mountedRef = useRef(true);
+  const safeTimeout = useSafeTimeouts();
 
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => { mountedRef.current = false; timersRef.current.forEach(clearTimeout); timersRef.current = []; };
-  }, []);
-
-  const safeTimeout = useCallback((fn, delay) => {
-    const id = setTimeout(() => { if (mountedRef.current) fn(); }, delay);
-    timersRef.current.push(id);
-    return id;
-  }, []);
+  const numOptions = progress.level >= 3 ? 4 : progress.level >= 2 ? 3 : 2;
 
   const newRound = useCallback(() => {
-    const shuffled = [...LETTERS].sort(() => Math.random() - 0.5);
-    const t = shuffled[0];
-    const opts = [t, ...shuffled.slice(1, 4)].sort(() => Math.random() - 0.5);
-    setTarget(t);
-    setOptions(opts);
+    const data = generateRound(numOptions);
+    setRoundData(data);
     setSelected(null);
     setFeedback(null);
-    safeTimeout(() => speak(`איפה האות ${t.name}?`), 400);
-  }, [speak, safeTimeout]);
+    safeTimeout(() => speak(data.speakText), 400);
+  }, [speak, safeTimeout, generateRound, numOptions]);
 
-  const startGame = () => { playSound('click'); setPhase('playing'); setRound(0); setScore(0); newRound(); };
+  const startGame = () => {
+    playSound('click');
+    setPhase('playing');
+    setRound(0);
+    setScore(0);
+    setStreak(0);
+    newRound();
+  };
 
-  useEffect(() => { if (phase === 'intro') speak('מצא את האות!'); }, [phase, speak]);
+  useEffect(() => { if (phase === 'intro') speak(title); }, [phase, speak, title]);
 
   const handlePick = (opt) => {
-    if (selected) return;
+    if (selected || !roundData) return;
     playSound('click');
     setSelected(opt.letter);
-    if (opt.letter === target.letter) {
+
+    if (opt.letter === roundData.target.letter) {
       setFeedback('success');
       setScore(s => s + 1);
-      addStars(2);
+      setStreak(s => s + 1);
+      const bonus = streak >= 4 ? 5 : streak >= 2 ? 3 : 2;
+      addStars(bonus);
+      addStreak();
       safeTimeout(() => {
         setFeedback(null);
         if (round + 1 < TOTAL) { setRound(r => r + 1); newRound(); }
-        else { addGame(); setPhase('done'); speak('מעולה! סיימת!'); }
+        else {
+          addGame();
+          setShowConfetti(true);
+          setPhase('done');
+          speak('מעולה! סיימת!');
+          safeTimeout(() => setShowConfetti(false), 3000);
+        }
       }, 1500);
     } else {
       setFeedback('wrong');
-      safeTimeout(() => { setSelected(null); setFeedback(null); speak(`נסה שוב! איפה ${target.name}?`); }, 1500);
+      setStreak(0);
+      resetStreak();
+      safeTimeout(() => {
+        setSelected(null);
+        setFeedback(null);
+        speak(roundData.retryText || 'נסה שוב!');
+      }, 1500);
     }
   };
 
@@ -603,51 +735,69 @@ function FindGameScreen({ speak, addStars, addGame, onBack }) {
   };
   const bgStyle = {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0,
-    background: 'linear-gradient(180deg, #FDE8EF 0%, #FFF8E7 100%)',
+    background: bgGradient,
   };
 
   if (phase === 'intro') {
     return (
       <div style={screenStyle}>
         <div style={bgStyle} />
+        <FloatingParticles />
         <div style={{ display: 'flex', padding: '12px 16px', position: 'relative', zIndex: 1 }}>
           <IconButton onClick={onBack} color="#ccc">✕</IconButton>
         </div>
         <div style={{
           flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-          justifyContent: 'center', gap: 16, position: 'relative', zIndex: 1,
+          justifyContent: 'center', gap: 14, position: 'relative', zIndex: 1,
         }}>
-          <img src={ASSETS.images.mascotHappy} alt="" style={{ width: 130, height: 130, objectFit: 'contain' }} />
-          <span style={{ fontSize: 50 }}>🔍</span>
-          <h2 style={{ fontSize: 30, fontWeight: 700, color: '#2D3436', fontFamily: "'Rubik', sans-serif" }}>מצא את האות</h2>
-          <p style={{ fontSize: 16, color: '#777', fontFamily: "'Rubik', sans-serif", textAlign: 'center', padding: '0 30px' }}>
-            שמע את שם האות ומצא אותה מבין 4 אותיות!
+          <img src={ASSETS.images.mascotHappy} alt="" style={{ width: 120, height: 120, objectFit: 'contain', animation: 'float 3s ease infinite' }} />
+          <span style={{ fontSize: 50, animation: 'popIn 0.4s ease' }}>{icon}</span>
+          <h2 style={{ fontSize: 28, fontWeight: 700, color: '#2D3436', fontFamily: "'Rubik', sans-serif", animation: 'fadeInUp 0.4s ease 0.1s forwards', opacity: 0 }}>{title}</h2>
+          <p style={{
+            fontSize: 15, color: '#777', fontFamily: "'Rubik', sans-serif",
+            textAlign: 'center', padding: '0 30px', animation: 'fadeInUp 0.4s ease 0.2s forwards', opacity: 0,
+          }}>
+            {gameConfig.description}
           </p>
-          <Button onClick={startGame} color="#FF6B6B" size="large" icon="▶">התחל משחק</Button>
+          <div style={{ animation: 'fadeInUp 0.4s ease 0.3s forwards', opacity: 0, marginTop: 5 }}>
+            <Button onClick={startGame} color={color} size="large" icon="▶">התחל משחק</Button>
+          </div>
+          <div style={{ animation: 'fadeInUp 0.4s ease 0.4s forwards', opacity: 0 }}>
+            <LevelBadge level={progress.level} />
+            <span style={{ fontSize: 12, color: '#aaa', marginRight: 8, fontFamily: "'Rubik', sans-serif" }}>
+              ({numOptions} אפשרויות)
+            </span>
+          </div>
         </div>
       </div>
     );
   }
 
   if (phase === 'done') {
+    const totalStars = score * 2 + Math.max(0, streak - 2) * 2;
     return (
       <div style={screenStyle}>
         <div style={bgStyle} />
+        <ConfettiEffect active={showConfetti} />
         <div style={{
           flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-          justifyContent: 'center', gap: 16, position: 'relative', zIndex: 1,
+          justifyContent: 'center', gap: 14, position: 'relative', zIndex: 1,
         }}>
-          <img src={ASSETS.images.mascotCelebrate} alt="" style={{ width: 130, height: 130, objectFit: 'contain' }} />
+          <img src={ASSETS.images.mascotCelebrate} alt="" style={{ width: 120, height: 120, objectFit: 'contain', animation: 'bounce 1s ease infinite' }} />
           <div style={{
-            background: 'white', padding: '25px 40px', borderRadius: 24,
-            boxShadow: '0 6px 25px rgba(0,0,0,0.1)', textAlign: 'center',
+            background: 'white', padding: '25px 45px', borderRadius: 26,
+            boxShadow: '0 8px 30px rgba(0,0,0,0.1)', textAlign: 'center',
+            animation: 'popIn 0.4s ease',
           }}>
-            <div style={{ fontSize: 20, color: '#666', fontFamily: "'Rubik', sans-serif" }}>סיימת!</div>
+            <div style={{ fontSize: 18, color: '#888', fontFamily: "'Rubik', sans-serif" }}>
+              {score === TOTAL ? 'מושלם! 🌟' : score >= TOTAL - 1 ? 'כמעט מושלם!' : 'סיימת!'}
+            </div>
             <div style={{ fontSize: 50, fontWeight: 700, color: '#2D3436', fontFamily: "'Rubik', sans-serif" }}>{score} / {TOTAL}</div>
-            <div style={{ fontSize: 20, color: '#FFB800', fontFamily: "'Rubik', sans-serif" }}>+{score * 2} ⭐</div>
+            <div style={{ fontSize: 20, color: '#FFB800', fontFamily: "'Rubik', sans-serif" }}>⭐ +{totalStars}</div>
+            {score === TOTAL && <div style={{ fontSize: 14, color: '#4CAF50', marginTop: 5, fontFamily: "'Rubik', sans-serif" }}>בונוס ציון מושלם! 🎯</div>}
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 10 }}>
-            <Button onClick={startGame} color="#FF6B6B" size="large" icon="🔄">שחק שוב</Button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>
+            <Button onClick={startGame} color={color} size="large" icon="🔄">שחק שוב</Button>
             <Button onClick={onBack} color="#BDBDBD" size="medium" icon="🏠">חזרה הביתה</Button>
           </div>
         </div>
@@ -655,48 +805,49 @@ function FindGameScreen({ speak, addStars, addGame, onBack }) {
     );
   }
 
+  // PLAYING
   return (
     <div style={screenStyle}>
       <div style={bgStyle} />
+      <FloatingParticles />
       {feedback && <Feedback type={feedback} />}
+      <StreakBadge streak={streak} />
 
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '12px 16px', position: 'relative', zIndex: 1, flexShrink: 0,
+        padding: '10px 16px', position: 'relative', zIndex: 1, flexShrink: 0,
       }}>
         <IconButton onClick={onBack} color="#ccc">✕</IconButton>
         <div style={{
-          background: 'white', padding: '6px 16px', borderRadius: 20,
-          fontSize: 15, fontWeight: 600, color: '#555', fontFamily: "'Rubik', sans-serif",
-          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+          background: 'white', padding: '5px 14px', borderRadius: 20,
+          fontSize: 14, fontWeight: 600, color: '#555', fontFamily: "'Rubik', sans-serif",
+          boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
         }}>
           שאלה {round + 1} מתוך {TOTAL}
         </div>
-        <IconButton onClick={() => speak(`איפה האות ${target?.name}?`)} color="#2196F3">🔊</IconButton>
+        <IconButton onClick={() => roundData && speak(roundData.speakText)} color="#2196F3">🔊</IconButton>
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'center', padding: '0 20px', position: 'relative', zIndex: 1 }}>
-        <ProgressBar current={round + 1} total={TOTAL} />
+        <ProgressBar current={round + 1} total={TOTAL} color={color} />
       </div>
 
       <div style={{
         flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-        justifyContent: 'center', padding: '10px 20px', position: 'relative', zIndex: 1,
+        justifyContent: 'center', padding: '8px 20px', position: 'relative', zIndex: 1,
       }}>
-        <img src={ASSETS.images.mascotThinking} alt="" style={{ width: 80, height: 80, objectFit: 'contain', marginBottom: 10 }} />
-        <div style={{
-          fontSize: 22, fontWeight: 700, color: '#2D3436', marginBottom: 20,
-          background: 'white', padding: '10px 24px', borderRadius: 16,
-          fontFamily: "'Rubik', sans-serif",
-          boxShadow: '0 2px 10px rgba(0,0,0,0.06)',
-        }}>
-          איפה האות {target?.name}? 🤔
-        </div>
+        {/* Question area - custom per game */}
+        {roundData && questionText(roundData)}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14, width: '100%', maxWidth: 280 }}>
-          {options.map((opt, i) => {
+        {/* Options grid */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: numOptions <= 2 ? 'repeat(2, 1fr)' : 'repeat(2, 1fr)',
+          gap: 12, width: '100%', maxWidth: 280,
+        }}>
+          {roundData && getOptions(roundData).map((opt, i) => {
             const isSelected = selected === opt.letter;
-            const isCorrect = opt.letter === target?.letter;
+            const isCorrect = opt.letter === roundData.target.letter;
             let bg = 'white';
             if (isSelected) bg = isCorrect ? '#C8E6C9' : '#FFCDD2';
             return (
@@ -704,14 +855,18 @@ function FindGameScreen({ speak, addStars, addGame, onBack }) {
                 key={i}
                 onClick={() => handlePick(opt)}
                 style={{
-                  aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 52, fontWeight: 700, color: opt.color,
+                  aspectRatio: numOptions <= 2 ? '1.2' : '1',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: numOptions <= 2 ? 60 : 48, fontWeight: 700, color: opt.color,
                   background: bg, borderRadius: 20,
-                  border: `3px solid ${opt.color}`,
-                  boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
+                  border: `3px solid ${isSelected ? (isCorrect ? '#4CAF50' : '#F44336') : opt.color}`,
+                  boxShadow: isSelected
+                    ? (isCorrect ? '0 0 20px rgba(76,175,80,0.3)' : '0 0 20px rgba(244,67,54,0.3)')
+                    : '0 4px 15px rgba(0,0,0,0.06)',
                   cursor: selected ? 'default' : 'pointer',
                   transition: 'all 0.2s',
                   fontFamily: "'Rubik', sans-serif",
+                  animation: `fadeInUp 0.3s ease ${i * 0.05}s forwards`, opacity: 0,
                 }}
               >
                 {opt.letter}
@@ -721,212 +876,132 @@ function FindGameScreen({ speak, addStars, addGame, onBack }) {
         </div>
 
         <div style={{
-          marginTop: 16, background: 'white', padding: '8px 20px', borderRadius: 16,
-          fontSize: 18, fontWeight: 700, color: '#FFB800', fontFamily: "'Rubik', sans-serif",
-          boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+          marginTop: 14, background: 'white', padding: '6px 18px', borderRadius: 16,
+          fontSize: 16, fontWeight: 700, color: '#FFB800', fontFamily: "'Rubik', sans-serif",
+          boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
         }}>
-          ⭐ {score * 2} כוכבים
+          ⭐ {score * 2 + Math.max(0, streak - 2) * 2} כוכבים
         </div>
       </div>
     </div>
   );
 }
 
-function MatchGameScreen({ speak, addStars, addGame, onBack }) {
-  const [phase, setPhase] = useState('intro');
-  const [round, setRound] = useState(0);
-  const [score, setScore] = useState(0);
-  const [target, setTarget] = useState(null);
-  const [word, setWord] = useState(null);
-  const [options, setOptions] = useState([]);
-  const [selected, setSelected] = useState(null);
-  const [feedback, setFeedback] = useState(null);
-  const playSound = useSound();
-  const TOTAL = 5;
-  const timersRef = useRef([]);
-  const mountedRef = useRef(true);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => { mountedRef.current = false; timersRef.current.forEach(clearTimeout); timersRef.current = []; };
-  }, []);
-
-  const safeTimeout = useCallback((fn, delay) => {
-    const id = setTimeout(() => { if (mountedRef.current) fn(); }, delay);
-    timersRef.current.push(id);
-    return id;
-  }, []);
-
-  const newRound = useCallback(() => {
-    const shuffled = [...LETTERS].sort(() => Math.random() - 0.5);
-    const t = shuffled[0];
-    const w = t.words[Math.floor(Math.random() * t.words.length)];
-    const opts = [t, ...shuffled.slice(1, 4)].sort(() => Math.random() - 0.5);
-    setTarget(t); setWord(w); setOptions(opts); setSelected(null); setFeedback(null);
-    safeTimeout(() => speak(`${w.text}. באיזו אות מתחיל?`), 400);
-  }, [speak, safeTimeout]);
-
-  const startGame = () => { playSound('click'); setPhase('playing'); setRound(0); setScore(0); newRound(); };
-
-  useEffect(() => { if (phase === 'intro') speak('התאם את האות לתמונה!'); }, [phase, speak]);
-
-  const handlePick = (opt) => {
-    if (selected || !target) return;
-    playSound('click');
-    setSelected(opt.letter);
-    if (opt.letter === target.letter) {
-      setFeedback('success');
-      setScore(s => s + 1);
-      addStars(2);
-      safeTimeout(() => {
-        setFeedback(null);
-        if (round + 1 < TOTAL) { setRound(r => r + 1); newRound(); }
-        else { addGame(); setPhase('done'); speak('מעולה! סיימת!'); }
-      }, 1500);
-    } else {
-      setFeedback('wrong');
-      safeTimeout(() => { setSelected(null); setFeedback(null); speak('נסה שוב!'); }, 1500);
-    }
-  };
-
-  const screenStyle = {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 70,
-    display: 'flex', flexDirection: 'column', zIndex: 1,
-  };
-  const bgStyle = {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0,
-    background: 'linear-gradient(180deg, #EDE7F6 0%, #FFF8E7 100%)',
-  };
-
-  if (phase === 'intro') {
-    return (
-      <div style={screenStyle}>
-        <div style={bgStyle} />
-        <div style={{ display: 'flex', padding: '12px 16px', position: 'relative', zIndex: 1 }}>
-          <IconButton onClick={onBack} color="#ccc">✕</IconButton>
-        </div>
+function FindGameWrapper(props) {
+  const config = useMemo(() => ({
+    title: 'מצא את האות',
+    icon: '🔍',
+    color: '#FF6B6B',
+    bgGradient: 'linear-gradient(180deg, #FDE8EF 0%, #FFF8E7 100%)',
+    description: 'שמע את שם האות ומצא אותה מבין האותיות!',
+    TOTAL: 5,
+    generateRound: (numOpts) => {
+      const shuffled = [...LETTERS].sort(() => Math.random() - 0.5);
+      const t = shuffled[0];
+      const opts = [t, ...shuffled.slice(1, numOpts)].sort(() => Math.random() - 0.5);
+      return { target: t, options: opts, speakText: `איפה האות ${t.name}?`, retryText: `נסה שוב! איפה ${t.name}?` };
+    },
+    questionText: (data) => (
+      <div style={{ marginBottom: 16, textAlign: 'center', animation: 'popIn 0.3s ease' }}>
+        <img src={ASSETS.images.mascotThinking} alt="" style={{ width: 70, height: 70, objectFit: 'contain', marginBottom: 8 }} />
         <div style={{
-          flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-          justifyContent: 'center', gap: 16, position: 'relative', zIndex: 1,
+          fontSize: 20, fontWeight: 700, color: '#2D3436',
+          background: 'white', padding: '10px 24px', borderRadius: 18,
+          fontFamily: "'Rubik', sans-serif", boxShadow: '0 2px 10px rgba(0,0,0,0.06)',
         }}>
-          <img src={ASSETS.images.mascotHappy} alt="" style={{ width: 130, height: 130, objectFit: 'contain' }} />
-          <span style={{ fontSize: 50 }}>🎯</span>
-          <h2 style={{ fontSize: 30, fontWeight: 700, color: '#2D3436', fontFamily: "'Rubik', sans-serif" }}>התאם לתמונה</h2>
-          <p style={{ fontSize: 16, color: '#777', fontFamily: "'Rubik', sans-serif", textAlign: 'center', padding: '0 30px' }}>
-            ראה את התמונה ובחר באיזו אות המילה מתחילה!
-          </p>
-          <Button onClick={startGame} color="#9B59B6" size="large" icon="▶">התחל משחק</Button>
+          איפה האות <span style={{ color: data.target.color, fontSize: 24 }}>{data.target.name}</span>? 🤔
         </div>
       </div>
-    );
-  }
+    ),
+    getOptions: (data) => data.options,
+  }), []);
+  return <GameScreen {...props} gameConfig={config} />;
+}
 
-  if (phase === 'done') {
-    return (
-      <div style={screenStyle}>
-        <div style={bgStyle} />
-        <div style={{
-          flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-          justifyContent: 'center', gap: 16, position: 'relative', zIndex: 1,
-        }}>
-          <img src={ASSETS.images.mascotCelebrate} alt="" style={{ width: 130, height: 130, objectFit: 'contain' }} />
-          <div style={{
-            background: 'white', padding: '25px 40px', borderRadius: 24,
-            boxShadow: '0 6px 25px rgba(0,0,0,0.1)', textAlign: 'center',
-          }}>
-            <div style={{ fontSize: 20, color: '#666', fontFamily: "'Rubik', sans-serif" }}>סיימת!</div>
-            <div style={{ fontSize: 50, fontWeight: 700, color: '#2D3436', fontFamily: "'Rubik', sans-serif" }}>{score} / {TOTAL}</div>
-            <div style={{ fontSize: 20, color: '#FFB800', fontFamily: "'Rubik', sans-serif" }}>+{score * 2} ⭐</div>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 10 }}>
-            <Button onClick={startGame} color="#9B59B6" size="large" icon="🔄">שחק שוב</Button>
-            <Button onClick={onBack} color="#BDBDBD" size="medium" icon="🏠">חזרה הביתה</Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div style={screenStyle}>
-      <div style={bgStyle} />
-      {feedback && <Feedback type={feedback} />}
-
+function MatchGameWrapper(props) {
+  const config = useMemo(() => ({
+    title: 'התאם לתמונה',
+    icon: '🎯',
+    color: '#9B59B6',
+    bgGradient: 'linear-gradient(180deg, #EDE7F6 0%, #FFF8E7 100%)',
+    description: 'ראה את התמונה ובחר באיזו אות המילה מתחילה!',
+    TOTAL: 5,
+    generateRound: (numOpts) => {
+      const shuffled = [...LETTERS].sort(() => Math.random() - 0.5);
+      const t = shuffled[0];
+      const w = t.words[Math.floor(Math.random() * t.words.length)];
+      const opts = [t, ...shuffled.slice(1, numOpts)].sort(() => Math.random() - 0.5);
+      return { target: t, word: w, options: opts, speakText: `${w.text}. באיזו אות מתחיל?`, retryText: 'נסה שוב!' };
+    },
+    questionText: (data) => (
       <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '12px 16px', position: 'relative', zIndex: 1, flexShrink: 0,
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        background: 'white', padding: '14px 35px', borderRadius: 22,
+        boxShadow: '0 4px 20px rgba(0,0,0,0.06)', marginBottom: 16,
+        animation: 'popIn 0.3s ease',
       }}>
-        <IconButton onClick={onBack} color="#ccc">✕</IconButton>
-        <div style={{
-          background: 'white', padding: '6px 16px', borderRadius: 20,
-          fontSize: 15, fontWeight: 600, color: '#555', fontFamily: "'Rubik', sans-serif",
-          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-        }}>
-          שאלה {round + 1} מתוך {TOTAL}
-        </div>
-        <IconButton onClick={() => word && speak(`${word.text}. באיזו אות מתחיל?`)} color="#2196F3">🔊</IconButton>
+        <span style={{ fontSize: 50, animation: 'bounce 2s ease infinite' }}>{data.word?.emoji}</span>
+        <span style={{ fontSize: 24, fontWeight: 700, marginTop: 5, fontFamily: "'Rubik', sans-serif", color: '#2D3436' }}>
+          <span style={{ color: data.target.color, fontSize: 28 }}>{data.word?.text[0]}</span>
+          {data.word?.text.slice(1)}
+        </span>
+        <span style={{ fontSize: 13, color: '#aaa', marginTop: 4, fontFamily: "'Rubik', sans-serif" }}>באיזו אות מתחיל? 🤔</span>
       </div>
+    ),
+    getOptions: (data) => data.options,
+  }), []);
+  return <GameScreen {...props} gameConfig={config} />;
+}
 
-      <div style={{ display: 'flex', justifyContent: 'center', padding: '0 20px', position: 'relative', zIndex: 1 }}>
-        <ProgressBar current={round + 1} total={TOTAL} />
-      </div>
-
-      <div style={{
-        flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-        justifyContent: 'center', padding: '10px 20px', position: 'relative', zIndex: 1,
-      }}>
-        {/* Word display */}
+function SoundGameWrapper(props) {
+  const config = useMemo(() => ({
+    title: 'זהה את הצליל',
+    icon: '🎵',
+    color: '#FF9800',
+    bgGradient: 'linear-gradient(180deg, #FFF3E0 0%, #FFF8E7 100%)',
+    description: 'שמע את צליל האות ובחר איזו אות עושה את הצליל הזה!',
+    TOTAL: 5,
+    generateRound: (numOpts) => {
+      const shuffled = [...LETTERS].sort(() => Math.random() - 0.5);
+      const t = shuffled[0];
+      const opts = [t, ...shuffled.slice(1, numOpts)].sort(() => Math.random() - 0.5);
+      return { target: t, options: opts, speakText: `${t.sound}`, retryText: `זה הצליל של ${t.name}. נסה שוב!` };
+    },
+    questionText: (data) => (
+      <div style={{ marginBottom: 16, textAlign: 'center', animation: 'popIn 0.3s ease' }}>
         <div style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'center',
-          background: 'white', padding: '15px 35px', borderRadius: 22,
-          boxShadow: '0 4px 20px rgba(0,0,0,0.08)', marginBottom: 20,
-        }}>
-          <span style={{ fontSize: 55 }}>{word?.emoji}</span>
-          <span style={{ fontSize: 24, fontWeight: 700, marginTop: 5, fontFamily: "'Rubik', sans-serif", color: '#2D3436' }}>{word?.text}</span>
-          <span style={{ fontSize: 14, color: '#aaa', marginTop: 4, fontFamily: "'Rubik', sans-serif" }}>באיזו אות מתחיל? 🤔</span>
+          width: 80, height: 80, borderRadius: '50%', margin: '0 auto 10px',
+          background: 'linear-gradient(135deg, #FF9800, #FF5722)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 36, cursor: 'pointer', boxShadow: '0 4px 20px rgba(255,152,0,0.3)',
+          animation: 'pulse 2s ease infinite',
+        }} onClick={() => props.speak(data.target.sound)}>
+          🔊
         </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14, width: '100%', maxWidth: 280 }}>
-          {options.map((opt, i) => {
-            const isSelected = selected === opt.letter;
-            const isCorrect = opt.letter === target?.letter;
-            let bg = 'white';
-            if (isSelected) bg = isCorrect ? '#C8E6C9' : '#FFCDD2';
-            return (
-              <div
-                key={i}
-                onClick={() => handlePick(opt)}
-                style={{
-                  aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 52, fontWeight: 700, color: opt.color,
-                  background: bg, borderRadius: 20,
-                  border: `3px solid ${opt.color}`,
-                  boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
-                  cursor: selected ? 'default' : 'pointer',
-                  transition: 'all 0.2s',
-                  fontFamily: "'Rubik', sans-serif",
-                }}
-              >
-                {opt.letter}
-              </div>
-            );
-          })}
-        </div>
-
         <div style={{
-          marginTop: 16, background: 'white', padding: '8px 20px', borderRadius: 16,
-          fontSize: 18, fontWeight: 700, color: '#FFB800', fontFamily: "'Rubik', sans-serif",
-          boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+          fontSize: 20, fontWeight: 700, color: '#2D3436',
+          background: 'white', padding: '10px 24px', borderRadius: 18,
+          fontFamily: "'Rubik', sans-serif", boxShadow: '0 2px 10px rgba(0,0,0,0.06)',
+          display: 'inline-block',
         }}>
-          ⭐ {score * 2} כוכבים
+          איזו אות עושה את הצליל הזה? 🎵
         </div>
       </div>
-    </div>
-  );
+    ),
+    getOptions: (data) => data.options,
+  }), [props]);
+  return <GameScreen {...props} gameConfig={config} />;
 }
 
 function AchievementsScreen({ progress, speak, onBack }) {
-  useEffect(() => { speak(`יש לך ${progress.stars} כוכבים!`); }, [speak, progress.stars]);
+  useEffect(() => { speak(`יש לך ${progress.stars} כוכבים! רמה ${progress.level}!`); }, [speak, progress.stars, progress.level]);
+
+  const milestones = [
+    { stars: 10, label: 'כוכב עולה', icon: '⭐', unlocked: progress.stars >= 10 },
+    { stars: 30, label: 'חוקר אותיות', icon: '🔤', unlocked: progress.stars >= 30 },
+    { stars: 50, label: 'גיבור הקריאה', icon: '🦸', unlocked: progress.stars >= 50 },
+    { stars: 100, label: 'אלוף הא-ב', icon: '🏆', unlocked: progress.stars >= 100 },
+  ];
 
   return (
     <div style={{
@@ -937,8 +1012,8 @@ function AchievementsScreen({ progress, speak, onBack }) {
         position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0,
         background: 'linear-gradient(180deg, #FFF8E7 0%, #FFFDE7 100%)',
       }} />
+      <FloatingParticles />
 
-      {/* Header */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '12px 16px', position: 'relative', zIndex: 1, flexShrink: 0,
@@ -949,46 +1024,71 @@ function AchievementsScreen({ progress, speak, onBack }) {
       </div>
 
       <div style={{
-        position: 'relative', zIndex: 1, padding: '10px 20px 30px',
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 15,
+        position: 'relative', zIndex: 1, padding: '8px 20px 30px',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
         width: '100%', maxWidth: 420, margin: '0 auto',
       }}>
-        <img src={ASSETS.images.mascotCelebrate} alt="" style={{ width: 100, height: 100, objectFit: 'contain' }} />
+        <img src={ASSETS.images.mascotCelebrate} alt="" style={{
+          width: 90, height: 90, objectFit: 'contain', animation: 'float 3s ease infinite',
+        }} />
+        <LevelBadge level={progress.level} />
 
         {/* Stars */}
         <div style={{
           width: '100%', background: 'linear-gradient(135deg, #FFD93D, #F9A825)',
-          borderRadius: 20, padding: 20, textAlign: 'center', color: 'white',
-          boxShadow: '0 4px 20px rgba(249,168,37,0.3)',
+          borderRadius: 22, padding: 18, textAlign: 'center', color: 'white',
+          boxShadow: '0 6px 25px rgba(249,168,37,0.3)', animation: 'popIn 0.4s ease',
         }}>
-          <div style={{ fontSize: 44, fontWeight: 700, fontFamily: "'Rubik', sans-serif" }}>⭐ {progress.stars}</div>
-          <div style={{ fontSize: 16, fontFamily: "'Rubik', sans-serif" }}>כוכבים</div>
+          <div style={{ fontSize: 42, fontWeight: 700, fontFamily: "'Rubik', sans-serif" }}>⭐ {progress.stars}</div>
+          <div style={{ fontSize: 15, fontFamily: "'Rubik', sans-serif", opacity: 0.9 }}>כוכבים</div>
+        </div>
+
+        {/* Milestones */}
+        <div style={{
+          width: '100%', background: 'white', borderRadius: 20, padding: 16,
+          boxShadow: '0 2px 12px rgba(0,0,0,0.05)',
+        }}>
+          <div style={{ fontWeight: 700, marginBottom: 10, fontSize: 15, fontFamily: "'Rubik', sans-serif", color: '#2D3436' }}>
+            תגים:
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {milestones.map((m, i) => (
+              <div key={i} style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '6px 12px', borderRadius: 12,
+                background: m.unlocked ? '#FFF3E0' : '#f5f5f5',
+                opacity: m.unlocked ? 1 : 0.4,
+                fontSize: 13, fontFamily: "'Rubik', sans-serif",
+                animation: m.unlocked ? 'glowPulse 2s ease infinite' : 'none',
+              }}>
+                <span style={{ fontSize: 18 }}>{m.icon}</span>
+                <span style={{ fontWeight: 600, color: m.unlocked ? '#FF6B00' : '#aaa' }}>{m.label}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Letters */}
         <div style={{
-          width: '100%', background: 'white', borderRadius: 20, padding: 18,
-          boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+          width: '100%', background: 'white', borderRadius: 20, padding: 16,
+          boxShadow: '0 2px 12px rgba(0,0,0,0.05)',
         }}>
-          <div style={{ fontWeight: 700, marginBottom: 12, fontSize: 16, fontFamily: "'Rubik', sans-serif", color: '#2D3436' }}>
+          <div style={{ fontWeight: 700, marginBottom: 10, fontSize: 15, fontFamily: "'Rubik', sans-serif", color: '#2D3436' }}>
             אותיות שלמדתי ({progress.learned.length} / {LETTERS.length}):
           </div>
-          <ProgressBar current={progress.learned.length} total={LETTERS.length} />
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginTop: 14 }}>
+          <ProgressBar current={progress.learned.length} total={LETTERS.length} color="#4ECDC4" />
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, justifyContent: 'center', marginTop: 12 }}>
             {LETTERS.map((l, i) => {
               const learned = progress.learned.includes(l.letter);
               return (
                 <span key={i} style={{
-                  width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 18, fontWeight: 700, borderRadius: 10,
+                  width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 17, fontWeight: 700, borderRadius: 10,
                   background: learned ? l.color : '#f0f0f0',
                   color: learned ? 'white' : '#ccc',
                   boxShadow: learned ? `0 2px 8px ${l.color}44` : 'none',
-                  transition: 'all 0.3s',
-                  fontFamily: "'Rubik', sans-serif",
-                }}>
-                  {l.letter}
-                </span>
+                  transition: 'all 0.3s', fontFamily: "'Rubik', sans-serif",
+                }}>{l.letter}</span>
               );
             })}
           </div>
@@ -996,12 +1096,26 @@ function AchievementsScreen({ progress, speak, onBack }) {
 
         {/* Stats */}
         <div style={{
-          width: '100%', background: 'white', borderRadius: 20, padding: 18,
-          boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+          width: '100%', background: 'white', borderRadius: 20, padding: 16,
+          boxShadow: '0 2px 12px rgba(0,0,0,0.05)',
         }}>
-          <div style={{ fontWeight: 700, marginBottom: 10, fontSize: 16, fontFamily: "'Rubik', sans-serif", color: '#2D3436' }}>סטטיסטיקות:</div>
-          <div style={{ fontSize: 16, marginBottom: 8, fontFamily: "'Rubik', sans-serif", color: '#555' }}>🎮 משחקים שהושלמו: {progress.games}</div>
-          <div style={{ fontSize: 16, fontFamily: "'Rubik', sans-serif", color: '#555' }}>🔤 אותיות שנלמדו: {progress.learned.length} מתוך {LETTERS.length}</div>
+          <div style={{ fontWeight: 700, marginBottom: 10, fontSize: 15, fontFamily: "'Rubik', sans-serif", color: '#2D3436' }}>סטטיסטיקות:</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {[
+              { icon: '🎮', label: 'משחקים', val: progress.games },
+              { icon: '🔥', label: 'שיא רצף', val: progress.bestStreak },
+              { icon: '📊', label: 'רמה', val: progress.level },
+            ].map((s, i) => (
+              <div key={i} style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                fontSize: 15, fontFamily: "'Rubik', sans-serif", color: '#555',
+              }}>
+                <span>{s.icon}</span>
+                <span>{s.label}:</span>
+                <span style={{ fontWeight: 700, color: '#2D3436' }}>{s.val}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -1012,25 +1126,24 @@ function AchievementsScreen({ progress, speak, onBack }) {
 function App() {
   const [view, setView] = useState('home');
   const speak = useSpeech();
-  const { data, addLetter, addStars, addGame } = useProgress();
+  const { data, addLetter, addStars, addGame, addStreak, resetStreak } = useProgress();
 
-  const handleNav = (target) => {
-    if (target === 'learn') setView('learn');
-    else if (target === 'achievements') setView('achievements');
-    else setView('home');
-  };
-
+  const handleNav = (target) => setView(target === 'learn' ? 'learn' : target === 'achievements' ? 'achievements' : 'home');
   const handleActivity = (id) => setView(id);
   const handleBack = () => setView('home');
+
+  const gameProps = { speak, addStars, addGame, addStreak, resetStreak, onBack: handleBack, progress: data };
 
   const renderScreen = () => {
     switch (view) {
       case 'learn':
         return <LearnScreen speak={speak} progress={data} addLetter={addLetter} addStars={addStars} onBack={handleBack} />;
       case 'find':
-        return <FindGameScreen speak={speak} addStars={addStars} addGame={addGame} onBack={handleBack} />;
+        return <FindGameWrapper {...gameProps} />;
       case 'match':
-        return <MatchGameScreen speak={speak} addStars={addStars} addGame={addGame} onBack={handleBack} />;
+        return <MatchGameWrapper {...gameProps} />;
+      case 'sound':
+        return <SoundGameWrapper {...gameProps} />;
       case 'achievements':
         return <AchievementsScreen progress={data} speak={speak} onBack={handleBack} />;
       default:
@@ -1048,7 +1161,7 @@ function App() {
       direction: 'rtl', display: 'flex', flexDirection: 'column', overflow: 'hidden',
     }}>
       {renderScreen()}
-      <NavBar current={currentNav} onNavigate={handleNav} stars={data.stars} />
+      <NavBar current={currentNav} onNavigate={handleNav} stars={data.stars} level={data.level} />
     </div>
   );
 }
