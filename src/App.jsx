@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
 /*
- * אפליקציית לימוד קריאה לילדים - גרסה 11.0
- * אוצר מילים מורחב + ערבוב חכם
+ * אפליקציית לימוד קריאה לילדים - גרסה 12.0
+ * בורר אותיות + מבחן מיני במסך לימוד
  */
 
 // ==================== ASSETS ====================
@@ -1125,6 +1125,7 @@ function GameScreen({ speak, addStars, addGame, addStreak, resetStreak, onBack, 
 }
 
 function FindGameWrapper(props) {
+  const { speak } = props;
   const config = useMemo(() => ({
     title: 'מצא את האות',
     icon: '🔍',
@@ -1148,7 +1149,7 @@ function FindGameWrapper(props) {
           fontSize: 36, cursor: 'pointer',
           boxShadow: `0 6px 25px ${data.target.color}44, inset 0 2px 0 rgba(255,255,255,0.3)`,
           animation: 'pulse 2s ease infinite',
-        }} onClick={() => props.speak(data.target.sound)}>
+        }} onClick={() => speak(data.target.sound)}>
           🔊
         </div>
         <div style={{
@@ -1161,7 +1162,7 @@ function FindGameWrapper(props) {
       </div>
     ),
     getOptions: (data) => data.options,
-  }), [props]);
+  }), [speak]);
   return <GameScreen {...props} gameConfig={config} />;
 }
 
@@ -1203,6 +1204,7 @@ function MatchGameWrapper(props) {
 }
 
 function SoundGameWrapper(props) {
+  const { speak } = props;
   const config = useMemo(() => ({
     title: 'זהה את הצליל',
     icon: '🎵',
@@ -1226,7 +1228,7 @@ function SoundGameWrapper(props) {
           fontSize: 38, cursor: 'pointer',
           boxShadow: '0 6px 25px rgba(255,152,0,0.4), inset 0 2px 0 rgba(255,255,255,0.3)',
           animation: 'pulse 2s ease infinite',
-        }} onClick={() => props.speak(data.target.sound)}>
+        }} onClick={() => speak(data.target.sound)}>
           🔊
         </div>
         <div style={{
@@ -1240,7 +1242,7 @@ function SoundGameWrapper(props) {
       </div>
     ),
     getOptions: (data) => data.options,
-  }), [props]);
+  }), [speak]);
   return <GameScreen {...props} gameConfig={config} />;
 }
 
