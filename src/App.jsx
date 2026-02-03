@@ -139,40 +139,47 @@ const CONFUSABLES = {
 };
 
 // ==================== NIKUD (VOWELS) DATA ====================
+// Modern Israeli Hebrew has 5 vowel sounds: /a/, /e/, /i/, /o/, /u/
+// Kamatz & Patach = "a", Tsere & Segol = "e", Chirik = "i", Cholam = "o", Kubutz & Shuruk = "u"
 const NIKUD = [
-  { symbol: 'ָ', name: 'קָמָץ', sound: 'אָ', soundName: 'א', color: '#FF6B6B', example: 'אָב', exampleMeaning: 'אבא' },
-  { symbol: 'ַ', name: 'פַּתָח', sound: 'אַ', soundName: 'א', color: '#4ECDC4', example: 'אַף', exampleMeaning: 'אף' },
-  { symbol: 'ֵ', name: 'צֵירֵי', sound: 'אֵ', soundName: 'ה', color: '#9B59B6', example: 'אֵם', exampleMeaning: 'אמא' },
-  { symbol: 'ֶ', name: 'סֶגּוֹל', sound: 'אֶ', soundName: 'ע', color: '#3498DB', example: 'מֶלֶך', exampleMeaning: 'מלך' },
-  { symbol: 'ִ', name: 'חִירִיק', sound: 'אִ', soundName: 'י', color: '#2ECC71', example: 'דִי', exampleMeaning: 'מספיק' },
-  { symbol: 'ֹ', name: 'חוֹלָם', sound: 'אֹ', soundName: 'ו', color: '#E67E22', example: 'לֹא', exampleMeaning: 'לא' },
-  { symbol: 'ֻ', name: 'קֻבּוּץ', sound: 'אֻ', soundName: 'ו', color: '#E74C3C', example: 'קֻם', exampleMeaning: 'קום' },
-  { symbol: 'וּ', name: 'שׁוּרוּק', sound: 'וּ', soundName: 'ו', color: '#8E44AD', example: 'שׁוּם', exampleMeaning: 'שום' },
+  { symbol: 'ָ', name: 'קָמָץ', sound: 'אָ', spokenSound: 'אַ', color: '#FF6B6B', example: 'אָב', exampleMeaning: 'אבא' },
+  { symbol: 'ַ', name: 'פַּתָח', sound: 'אַ', spokenSound: 'אַ', color: '#4ECDC4', example: 'אַף', exampleMeaning: 'אף' },
+  { symbol: 'ֵ', name: 'צֵירֵי', sound: 'אֵ', spokenSound: 'אֵי', color: '#9B59B6', example: 'אֵם', exampleMeaning: 'אמא' },
+  { symbol: 'ֶ', name: 'סֶגּוֹל', sound: 'אֶ', spokenSound: 'אֶה', color: '#3498DB', example: 'מֶלֶך', exampleMeaning: 'מלך' },
+  { symbol: 'ִ', name: 'חִירִיק', sound: 'אִ', spokenSound: 'אִי', color: '#2ECC71', example: 'סִיר', exampleMeaning: 'סיר' },
+  { symbol: 'ֹ', name: 'חוֹלָם', sound: 'אֹ', spokenSound: 'אוֹ', color: '#E67E22', example: 'לֹא', exampleMeaning: 'לא' },
+  { symbol: 'ֻ', name: 'קֻבּוּץ', sound: 'אֻ', spokenSound: 'אוּ', color: '#E74C3C', example: 'קֻם', exampleMeaning: 'קום' },
+  { symbol: 'וּ', name: 'שׁוּרוּק', sound: 'וּ', spokenSound: 'אוּ', color: '#8E44AD', example: 'שׁוּם', exampleMeaning: 'שום' },
 ];
 
 // Simplified nikud for initial learning (the 5 main vowels)
+// spokenAs: what TTS should say for this vowel sound
 const NIKUD_BASIC = [
-  { symbol: 'ָ', name: 'קָמָץ', sound: 'אָ', vowel: 'א', color: '#FF6B6B' },
-  { symbol: 'ִ', name: 'חִירִיק', sound: 'אִ', vowel: 'י', color: '#2ECC71' },
-  { symbol: 'ֵ', name: 'צֵירֵי', sound: 'אֵ', vowel: 'ה', color: '#9B59B6' },
-  { symbol: 'ֹ', name: 'חוֹלָם', sound: 'אֹ', vowel: 'ו', color: '#E67E22' },
-  { symbol: 'וּ', name: 'שׁוּרוּק', sound: 'וּ', vowel: 'ו', color: '#8E44AD' },
+  { symbol: 'ָ', name: 'קָמָץ', sound: 'אָ', spokenAs: 'אַ', vowelSound: 'a', color: '#FF6B6B' },
+  { symbol: 'ַ', name: 'פַּתָח', sound: 'אַ', spokenAs: 'אַ', vowelSound: 'a', color: '#4ECDC4' },
+  { symbol: 'ִ', name: 'חִירִיק', sound: 'אִ', spokenAs: 'אִי', vowelSound: 'i', color: '#2ECC71' },
+  { symbol: 'ֵ', name: 'צֵירֵי', sound: 'אֵ', spokenAs: 'אֵי', vowelSound: 'e', color: '#9B59B6' },
+  { symbol: 'ֹ', name: 'חוֹלָם', sound: 'אֹ', spokenAs: 'אוֹ', vowelSound: 'o', color: '#E67E22' },
+  { symbol: 'וּ', name: 'שׁוּרוּק', sound: 'וּ', spokenAs: 'אוּ', vowelSound: 'u', color: '#8E44AD' },
 ];
 
 // ==================== SYLLABLES (TZERUFIM) DATA ====================
 // Generate syllables for each letter + nikud combination
+// Using proper phonetic representation for TTS pronunciation
 const CONSONANTS_FOR_SYLLABLES = ['ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט', 'י', 'כ', 'ל', 'מ', 'נ', 'ס', 'פ', 'צ', 'ק', 'ר', 'ש', 'ת'];
 
 function generateSyllables() {
   const syllables = [];
+  // Each nikud with its TTS-friendly pronunciation suffix
+  // The spokenSuffix is added to create a pronounceable syllable
   const nikudList = [
-    { symbol: 'ָ', sound: 'א', name: 'קמץ', color: '#FF6B6B' },
-    { symbol: 'ַ', sound: 'א', name: 'פתח', color: '#4ECDC4' },
-    { symbol: 'ִ', sound: 'י', name: 'חיריק', color: '#2ECC71' },
-    { symbol: 'ֵ', sound: 'ה', name: 'צירי', color: '#9B59B6' },
-    { symbol: 'ֶ', sound: 'ע', name: 'סגול', color: '#3498DB' },
-    { symbol: 'ֹ', sound: 'ו', name: 'חולם', color: '#E67E22' },
-    { symbol: 'ֻ', sound: 'ו', name: 'קובוץ', color: '#E74C3C' },
+    { symbol: 'ָ', spokenSuffix: 'ָא', name: 'קמץ', color: '#FF6B6B', vowelSound: 'a' },
+    { symbol: 'ַ', spokenSuffix: 'ַא', name: 'פתח', color: '#4ECDC4', vowelSound: 'a' },
+    { symbol: 'ִ', spokenSuffix: 'ִי', name: 'חיריק', color: '#2ECC71', vowelSound: 'i' },
+    { symbol: 'ֵ', spokenSuffix: 'ֵי', name: 'צירי', color: '#9B59B6', vowelSound: 'e' },
+    { symbol: 'ֶ', spokenSuffix: 'ֶה', name: 'סגול', color: '#3498DB', vowelSound: 'e' },
+    { symbol: 'ֹ', spokenSuffix: 'וֹ', name: 'חולם', color: '#E67E22', vowelSound: 'o' },
+    { symbol: 'ֻ', spokenSuffix: 'וּ', name: 'קובוץ', color: '#E74C3C', vowelSound: 'u' },
   ];
 
   CONSONANTS_FOR_SYLLABLES.forEach(letter => {
@@ -180,13 +187,16 @@ function generateSyllables() {
     const baseColor = letterData?.color || '#888';
     nikudList.forEach(n => {
       const syllable = letter + n.symbol;
-      const sound = letter + n.sound;
+      // For TTS: use the letter + nikud + mater lectionis (helping vowel letter)
+      // This helps TTS pronounce the syllable correctly
+      const spokenSound = letter + n.spokenSuffix;
       syllables.push({
         syllable,
         letter,
         nikud: n.symbol,
         nikudName: n.name,
-        sound,
+        sound: spokenSound,
+        vowelSound: n.vowelSound,
         color: baseColor,
         nikudColor: n.color,
       });
@@ -1018,7 +1028,7 @@ function NikudLearnScreen({ speak, progress, addStars, onBack }) {
   }, [learnedNikud]);
 
   const speakNow = useCallback(() => {
-    speak(`זה ${nikud.name}. ${nikud.name} נשמע ${nikud.sound}`);
+    speak(`זה ${nikud.name}. ${nikud.name} נשמע ${nikud.spokenAs}`);
   }, [speak, nikud]);
 
   useEffect(() => {
@@ -1038,7 +1048,7 @@ function NikudLearnScreen({ speak, progress, addStars, onBack }) {
     setQuizOptions(opts);
     setQuizSelected(null);
     setQuizMode(true);
-    safeTimeout(() => speak(nikud.sound), 300);
+    safeTimeout(() => speak(nikud.spokenAs), 300);
   };
 
   const handleQuizPick = (opt) => {
@@ -1062,7 +1072,7 @@ function NikudLearnScreen({ speak, progress, addStars, onBack }) {
     } else {
       safeTimeout(() => {
         setQuizSelected(null);
-        speak(`לא, זה ${opt.name}. נסה שוב! ${nikud.sound}`);
+        speak(`לא, זה ${opt.name}. נסה שוב! ${nikud.spokenAs}`);
       }, 1200);
     }
   };
@@ -1140,7 +1150,7 @@ function NikudLearnScreen({ speak, progress, addStars, onBack }) {
               fontSize: 30, cursor: 'pointer',
               boxShadow: `0 6px 20px ${nikud.color}44`,
               animation: 'pulse 2s ease infinite',
-            }} onClick={() => speak(nikud.sound)}>
+            }} onClick={() => speak(nikud.spokenAs)}>
               🔊
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, width: '100%', maxWidth: 280 }}>
@@ -1206,16 +1216,21 @@ function NikudLearnScreen({ speak, progress, addStars, onBack }) {
               boxShadow: '0 4px 15px rgba(0,0,0,0.05)',
               animation: 'fadeInUp 0.4s ease 0.3s forwards', opacity: 0,
             }}>
-              {['ב', 'מ', 'ל', 'ש'].map((letter, i) => (
-                <div key={i} onClick={() => speak(letter + nikud.vowel)} style={{
-                  padding: '8px 14px', borderRadius: 12,
-                  background: `${nikud.color}15`, cursor: 'pointer',
-                  fontSize: 28, fontWeight: 700, color: nikud.color,
-                  fontFamily: "'Rubik', sans-serif",
-                }}>
-                  {letter}{nikud.symbol}
-                </div>
-              ))}
+              {['ב', 'מ', 'ל', 'ש'].map((letter, i) => {
+                // Find the proper spoken sound from SYLLABLES
+                const syllableData = SYLLABLES.find(s => s.letter === letter && s.nikud === nikud.symbol);
+                const spokenSound = syllableData ? syllableData.sound : letter + nikud.symbol;
+                return (
+                  <div key={i} onClick={() => speak(spokenSound)} style={{
+                    padding: '8px 14px', borderRadius: 12,
+                    background: `${nikud.color}15`, cursor: 'pointer',
+                    fontSize: 28, fontWeight: 700, color: nikud.color,
+                    fontFamily: "'Rubik', sans-serif",
+                  }}>
+                    {letter}{nikud.symbol}
+                  </div>
+                );
+              })}
             </div>
           </>
         )}
@@ -1253,17 +1268,19 @@ function SyllablesLearnScreen({ speak, progress, addStars, onBack }) {
   const safeTimeout = useSafeTimeouts();
 
   const currentLetter = CONSONANTS_FOR_SYLLABLES[letterIdx];
+  // Each nikud with proper TTS pronunciation suffix (mater lectionis)
   const nikudList = [
-    { symbol: 'ָ', sound: 'א', name: 'קמץ', color: '#FF6B6B' },
-    { symbol: 'ַ', sound: 'א', name: 'פתח', color: '#4ECDC4' },
-    { symbol: 'ִ', sound: 'י', name: 'חיריק', color: '#2ECC71' },
-    { symbol: 'ֵ', sound: 'ה', name: 'צירי', color: '#9B59B6' },
-    { symbol: 'ֶ', sound: 'ע', name: 'סגול', color: '#3498DB' },
-    { symbol: 'ֹ', sound: 'ו', name: 'חולם', color: '#E67E22' },
+    { symbol: 'ָ', spokenSuffix: 'ָא', name: 'קמץ', color: '#FF6B6B' },
+    { symbol: 'ַ', spokenSuffix: 'ַא', name: 'פתח', color: '#4ECDC4' },
+    { symbol: 'ִ', spokenSuffix: 'ִי', name: 'חיריק', color: '#2ECC71' },
+    { symbol: 'ֵ', spokenSuffix: 'ֵי', name: 'צירי', color: '#9B59B6' },
+    { symbol: 'ֶ', spokenSuffix: 'ֶה', name: 'סגול', color: '#3498DB' },
+    { symbol: 'ֹ', spokenSuffix: 'וֹ', name: 'חולם', color: '#E67E22' },
   ];
   const currentNikud = nikudList[nikudIdx];
   const syllable = currentLetter + currentNikud.symbol;
-  const syllableSound = currentLetter + currentNikud.sound;
+  // For TTS: letter + nikud symbol + helping vowel letter (mater lectionis)
+  const syllableSound = currentLetter + currentNikud.spokenSuffix;
   const letterData = LETTERS.find(l => l.letter === currentLetter);
   const letterColor = letterData?.color || '#888';
 
@@ -2120,6 +2137,97 @@ function SyllableGameWrapper(props) {
   );
 }
 
+// ==================== LEARN HUB SCREEN ====================
+function LearnHubScreen({ onSelect, speak, progress, onBack }) {
+  const playSound = useSound();
+
+  useEffect(() => { speak('בחר מה ללמוד!'); }, [speak]);
+
+  const options = [
+    { id: 'letters', icon: '📖', label: 'אותיות', desc: 'למד את 22 האותיות', color: '#4ECDC4', progress: `${progress.learned.length}/${LETTERS.length}` },
+    { id: 'nikud', icon: '🔤', label: 'ניקוד', desc: 'למד את התנועות', color: '#9B59B6', progress: '' },
+    { id: 'syllables', icon: '🧩', label: 'צירופים', desc: 'אותיות + ניקוד', color: '#E67E22', progress: '' },
+  ];
+
+  return (
+    <div style={{
+      position: 'absolute', top: 0, left: 0, right: 0, bottom: 70,
+      display: 'flex', flexDirection: 'column', zIndex: 1,
+    }}>
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0,
+        background: 'linear-gradient(180deg, #E8F5E9 0%, #FFF8E7 100%)',
+      }} />
+      <FloatingParticles />
+
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '12px 16px', position: 'relative', zIndex: 1, flexShrink: 0,
+      }}>
+        <IconButton onClick={onBack} color="#ccc">✕</IconButton>
+        <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Rubik', sans-serif", color: '#2D3436' }}>מרכז הלימוד</div>
+        <div style={{ width: 44 }} />
+      </div>
+
+      <div style={{
+        flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+        justifyContent: 'center', padding: '20px', position: 'relative', zIndex: 1, gap: 16,
+      }}>
+        <img src={ASSETS.images.mascotHappy} alt="" style={{
+          width: 100, height: 100, objectFit: 'contain', animation: 'float 3s ease infinite',
+        }} />
+        <div style={{
+          fontSize: 24, fontWeight: 700, color: '#2D3436', fontFamily: "'Rubik', sans-serif",
+          marginBottom: 10, textAlign: 'center',
+        }}>
+          מה תרצה ללמוד היום? 📚
+        </div>
+
+        {options.map((opt, i) => (
+          <div
+            key={opt.id}
+            onClick={() => { playSound('click'); speak(opt.label); setTimeout(() => onSelect(opt.id), 300); }}
+            style={{
+              width: '100%', maxWidth: 320, display: 'flex', alignItems: 'center', gap: 14,
+              padding: '18px 22px',
+              background: `linear-gradient(135deg, ${opt.color}15, ${opt.color}08)`,
+              borderRadius: 22,
+              border: `2px solid ${opt.color}33`,
+              boxShadow: `0 6px 20px ${opt.color}15`,
+              cursor: 'pointer', transition: 'transform 0.2s',
+              animation: `fadeInUp 0.4s ease forwards`,
+              animationDelay: `${i * 0.1}s`, opacity: 0,
+            }}
+          >
+            <div style={{
+              width: 60, height: 60, borderRadius: 18,
+              background: 'white', display: 'flex',
+              alignItems: 'center', justifyContent: 'center',
+              fontSize: 32, flexShrink: 0,
+              boxShadow: `0 4px 14px ${opt.color}20`,
+            }}>
+              {opt.icon}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 20, fontWeight: 700, color: '#2D3436', fontFamily: "'Rubik', sans-serif" }}>{opt.label}</div>
+              <div style={{ fontSize: 13, color: '#888', fontFamily: "'Rubik', sans-serif", marginTop: 2 }}>{opt.desc}</div>
+            </div>
+            {opt.progress && (
+              <div style={{
+                background: opt.color, color: 'white', padding: '4px 10px',
+                borderRadius: 12, fontSize: 12, fontWeight: 700, fontFamily: "'Rubik', sans-serif",
+              }}>
+                {opt.progress}
+              </div>
+            )}
+            <span style={{ fontSize: 18, color: '#ccc' }}>❮</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function AchievementsScreen({ progress, speak, onBack }) {
   useEffect(() => { speak(`יש לך ${progress.stars} כוכבים! רמה ${progress.level}!`); }, [speak, progress.stars, progress.level]);
 
@@ -2255,20 +2363,23 @@ function App() {
   const speak = useSpeech();
   const { data, addLetter, addStars, addGame, addStreak, resetStreak } = useProgress();
 
-  const handleNav = (target) => setView(target === 'learn' ? 'learn' : target === 'achievements' ? 'achievements' : 'home');
+  const handleNav = (target) => setView(target === 'learn' ? 'learnHub' : target === 'achievements' ? 'achievements' : 'home');
   const handleActivity = (id) => setView(id);
   const handleBack = () => setView('home');
+  const handleLearnSelect = (id) => setView(id === 'letters' ? 'learn' : id);
 
   const gameProps = { speak, addStars, addGame, addStreak, resetStreak, onBack: handleBack, progress: data };
 
   const renderScreen = () => {
     switch (view) {
+      case 'learnHub':
+        return <LearnHubScreen onSelect={handleLearnSelect} speak={speak} progress={data} onBack={handleBack} />;
       case 'learn':
-        return <LearnScreen speak={speak} progress={data} addLetter={addLetter} addStars={addStars} onBack={handleBack} />;
+        return <LearnScreen speak={speak} progress={data} addLetter={addLetter} addStars={addStars} onBack={() => setView('learnHub')} />;
       case 'nikud':
-        return <NikudLearnScreen speak={speak} progress={data} addStars={addStars} onBack={handleBack} />;
+        return <NikudLearnScreen speak={speak} progress={data} addStars={addStars} onBack={() => setView('learnHub')} />;
       case 'syllables':
-        return <SyllablesLearnScreen speak={speak} progress={data} addStars={addStars} onBack={handleBack} />;
+        return <SyllablesLearnScreen speak={speak} progress={data} addStars={addStars} onBack={() => setView('learnHub')} />;
       case 'find':
         return <FindGameWrapper {...gameProps} />;
       case 'match':
