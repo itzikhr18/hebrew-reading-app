@@ -2790,7 +2790,10 @@ function App() {
     }
   };
 
-  const currentNav = view === 'achievements' ? 'achievements' : view === 'learn' ? 'learn' : 'home';
+  // Highlight correct nav item based on current view
+  const currentNav = view === 'achievements' ? 'achievements'
+    : ['learn', 'learnHub', 'nikud', 'syllables'].includes(view) ? 'learn'
+    : 'home';
 
   return (
     <div style={{
