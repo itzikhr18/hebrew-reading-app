@@ -1992,26 +1992,46 @@ function FindGameWrapper(props) {
       const t = candidates[Math.floor(Math.random() * candidates.length)];
       const distractors = pickDistractors(t, numOpts - 1);
       const opts = [t, ...distractors].sort(() => Math.random() - 0.5);
-      return { target: t, options: opts, speakText: t.sound, retryText: `נסה שוב!` };
+      // Get a hint word for this letter
+      const hintWord = t.words[Math.floor(Math.random() * t.words.length)];
+      return { target: t, options: opts, hintWord, speakText: t.sound, retryText: `נסה שוב!` };
     },
     questionText: (data) => (
       <div style={{ marginBottom: 16, textAlign: 'center', animation: 'popIn 0.3s ease' }}>
         <div style={{
-          width: 80, height: 80, borderRadius: '50%', margin: '0 auto 10px',
-          background: `linear-gradient(145deg, ${data.target.color}, ${data.target.color}bb)`,
+          width: 85, height: 85, borderRadius: '50%', margin: '0 auto 10px',
+          background: `linear-gradient(180deg, ${data.target.color}, ${data.target.color}bb)`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 36, cursor: 'pointer',
-          boxShadow: `0 6px 25px ${data.target.color}44, inset 0 2px 0 rgba(255,255,255,0.3)`,
+          fontSize: 38, cursor: 'pointer',
+          boxShadow: `0 6px 0 ${data.target.color}99, 0 8px 25px ${data.target.color}44, inset 0 2px 0 rgba(255,255,255,0.3)`,
           animation: 'pulse 2s ease infinite',
+          border: '3px solid rgba(255,255,255,0.3)',
         }} onClick={() => speak(data.target.sound)}>
           🔊
         </div>
         <div style={{
-          fontSize: 20, fontWeight: 700, color: '#2D3436',
-          background: 'white', padding: '10px 24px', borderRadius: 18,
-          fontFamily: "'Rubik', sans-serif", boxShadow: '0 2px 10px rgba(0,0,0,0.06)',
+          background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(10px)',
+          padding: '14px 28px', borderRadius: 20,
+          boxShadow: '0 6px 0 rgba(0,0,0,0.1), 0 8px 25px rgba(0,0,0,0.15), inset 0 2px 0 rgba(255,255,255,1)',
+          border: '3px solid rgba(255,255,255,0.5)',
         }}>
-          איזו אות עושה את הצליל הזה? 🤔
+          <div style={{
+            fontSize: 18, fontWeight: 700, color: '#2D3436',
+            fontFamily: "'Rubik', sans-serif", marginBottom: 6,
+          }}>
+            איזו אות עושה את הצליל הזה? 🤔
+          </div>
+          <div style={{
+            fontSize: 14, color: '#888', fontFamily: "'Rubik', sans-serif",
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          }}>
+            <span>רמז:</span>
+            <span style={{ fontSize: 20 }}>{data.hintWord?.emoji}</span>
+            <span style={{ fontWeight: 600, color: '#555' }}>
+              <span style={{ color: data.target.color, fontWeight: 800 }}>{data.hintWord?.text[0]}</span>
+              {data.hintWord?.text.slice(1)}
+            </span>
+          </div>
         </div>
       </div>
     ),
@@ -2026,7 +2046,7 @@ function MatchGameWrapper(props) {
     icon: '🎯',
     color: '#9B59B6',
     bgColors: { color1: '#4a148c', color2: '#7b1fa2', color3: '#9B59B6' },
-    description: 'ראה את התמונה ובחר באיזו אות המילה מתחילה!',
+    description: 'ראה את התמונה ומצא את האות החסרה!',
     TOTAL: 5,
     generateRound: (numOpts, prevLetter) => {
       let candidates = LETTERS.filter(l => l.letter !== prevLetter);
@@ -2034,22 +2054,37 @@ function MatchGameWrapper(props) {
       const w = t.words[Math.floor(Math.random() * t.words.length)];
       const distractors = pickDistractors(t, numOpts - 1);
       const opts = [t, ...distractors].sort(() => Math.random() - 0.5);
-      return { target: t, word: w, options: opts, speakText: `${w.text}. באיזו אות מתחיל?`, retryText: 'נסה שוב!' };
+      // Create word with missing first letter
+      const wordWithMissing = '?' + w.text.slice(1);
+      return { target: t, word: w, wordWithMissing, options: opts, speakText: `${w.text}. איזו אות חסרה?`, retryText: 'נסה שוב!' };
     },
     questionText: (data) => (
       <div style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center',
-        background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)',
-        padding: '18px 40px', borderRadius: 24,
-        boxShadow: '0 8px 30px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.8)',
-        border: '1px solid rgba(255,255,255,0.6)',
+        background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(10px)',
+        padding: '20px 45px', borderRadius: 24,
+        boxShadow: '0 8px 0 rgba(0,0,0,0.1), 0 12px 30px rgba(0,0,0,0.15), inset 0 2px 0 rgba(255,255,255,1)',
+        border: '3px solid rgba(255,255,255,0.5)',
         marginBottom: 16, animation: 'popIn 0.3s ease',
       }}>
-        <span style={{ fontSize: 56, animation: 'bounce 2s ease infinite', filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.1))' }}>{data.word?.emoji}</span>
-        <span style={{ fontSize: 24, fontWeight: 700, marginTop: 5, fontFamily: "'Rubik', sans-serif", color: '#2D3436' }}>
-          {data.word?.text}
-        </span>
-        <span style={{ fontSize: 13, color: '#aaa', marginTop: 4, fontFamily: "'Rubik', sans-serif" }}>באיזו אות מתחיל? 🤔</span>
+        <span style={{ fontSize: 60, animation: 'bounce 2s ease infinite', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.15))' }}>{data.word?.emoji}</span>
+        <div style={{ fontSize: 28, fontWeight: 700, marginTop: 8, fontFamily: "'Rubik', sans-serif", direction: 'rtl' }}>
+          <span style={{
+            color: '#9B59B6',
+            fontSize: 34,
+            background: 'linear-gradient(180deg, #9B59B6 0%, #7B1FA2 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            animation: 'pulse 1.5s ease infinite',
+          }}>?</span>
+          <span style={{ color: '#2D3436' }}>{data.word?.text.slice(1)}</span>
+        </div>
+        <span style={{
+          fontSize: 14, color: 'white', marginTop: 8, fontFamily: "'Rubik', sans-serif",
+          background: 'linear-gradient(180deg, #9B59B6 0%, #7B1FA2 100%)',
+          padding: '6px 14px', borderRadius: 12,
+          boxShadow: '0 2px 0 #5e2d7a',
+        }}>איזו אות חסרה? 🤔</span>
       </div>
     ),
     getOptions: (data) => data.options,
@@ -2125,21 +2160,53 @@ function SyllableGameWrapper(props) {
     questionText: (data) => (
       <div style={{ marginBottom: 16, textAlign: 'center', animation: 'popIn 0.3s ease' }}>
         <div style={{
-          width: 85, height: 85, borderRadius: '50%', margin: '0 auto 10px',
-          background: `linear-gradient(145deg, ${data.target.color}, ${data.target.color}bb)`,
+          width: 90, height: 90, borderRadius: '50%', margin: '0 auto 12px',
+          background: `linear-gradient(180deg, ${data.target.color}, ${data.target.color}bb)`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 36, cursor: 'pointer',
-          boxShadow: `0 6px 25px ${data.target.color}44, inset 0 2px 0 rgba(255,255,255,0.3)`,
+          fontSize: 40, cursor: 'pointer',
+          boxShadow: `0 6px 0 ${data.target.color}99, 0 8px 25px ${data.target.color}44, inset 0 2px 0 rgba(255,255,255,0.3)`,
           animation: 'pulse 2s ease infinite',
+          border: '3px solid rgba(255,255,255,0.3)',
         }} onClick={() => speak(data.target.sound)}>
           🔊
         </div>
         <div style={{
-          fontSize: 20, fontWeight: 700, color: '#2D3436',
-          background: 'white', padding: '10px 24px', borderRadius: 18,
-          fontFamily: "'Rubik', sans-serif", boxShadow: '0 2px 10px rgba(0,0,0,0.06)',
+          background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(10px)',
+          padding: '14px 28px', borderRadius: 20,
+          boxShadow: '0 6px 0 rgba(0,0,0,0.1), 0 8px 25px rgba(0,0,0,0.15), inset 0 2px 0 rgba(255,255,255,1)',
+          border: '3px solid rgba(255,255,255,0.5)',
         }}>
-          איזה צירוף נשמע ככה? 🧩
+          <div style={{
+            fontSize: 18, fontWeight: 700, color: '#2D3436',
+            fontFamily: "'Rubik', sans-serif", marginBottom: 8,
+          }}>
+            איזה צירוף נשמע ככה? 🧩
+          </div>
+          {/* Visual breakdown: Letter + Nikud = Syllable */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            fontSize: 14, color: '#666', fontFamily: "'Rubik', sans-serif",
+          }}>
+            <span style={{
+              background: `${data.target.color}20`,
+              padding: '4px 10px', borderRadius: 8,
+              fontWeight: 700, color: data.target.color,
+            }}>{data.target.letter}</span>
+            <span>+</span>
+            <span style={{
+              background: `${data.target.nikudColor || '#9B59B6'}20`,
+              padding: '4px 10px', borderRadius: 8,
+              fontWeight: 700, color: data.target.nikudColor || '#9B59B6',
+            }}>{data.target.nikudName}</span>
+            <span>=</span>
+            <span style={{
+              background: 'linear-gradient(180deg, #3498DB 0%, #1976D2 100%)',
+              color: 'white',
+              padding: '4px 12px', borderRadius: 8,
+              fontWeight: 700, fontSize: 18,
+              boxShadow: '0 2px 0 #0d47a1',
+            }}>?</span>
+          </div>
         </div>
       </div>
     ),
