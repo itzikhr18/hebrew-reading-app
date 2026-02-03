@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
 /*
- * אפליקציית לימוד קריאה לילדים - גרסה 13.0
+ * אפליקציית לימוד קריאה לילדים - גרסה 14.0
  * כולל: אותיות, ניקוד, צירופים ומשחקים
+ * עיצוב ויזואלי משחקי משופר
  */
 
 // ==================== ASSETS ====================
@@ -382,26 +383,63 @@ function useSafeTimeouts() {
 
 // ==================== UI COMPONENTS ====================
 
+// Animated background with floating bubbles and particles
+function GameBackground({ color1 = '#1e3c72', color2 = '#2a5298', color3 = '#4facfe' }) {
+  const bubbles = useMemo(() => Array.from({ length: 15 }, (_, i) => ({
+    left: `${Math.random() * 100}%`,
+    size: 20 + Math.random() * 60,
+    delay: Math.random() * 10,
+    duration: 8 + Math.random() * 12,
+    opacity: 0.1 + Math.random() * 0.2,
+  })), []);
+
+  return (
+    <div style={{
+      position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0,
+      background: `linear-gradient(180deg, ${color1} 0%, ${color2} 40%, ${color3} 100%)`,
+      overflow: 'hidden',
+    }}>
+      {/* Gradient overlay for depth */}
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, height: '40%',
+        background: 'linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 100%)',
+      }} />
+      {/* Floating bubbles */}
+      {bubbles.map((b, i) => (
+        <div key={i} style={{
+          position: 'absolute', bottom: -100, left: b.left,
+          width: b.size, height: b.size, borderRadius: '50%',
+          background: `radial-gradient(circle at 30% 30%, rgba(255,255,255,${b.opacity + 0.2}), rgba(255,255,255,${b.opacity}))`,
+          animation: `bubbleFloat ${b.duration}s ease-in-out infinite`,
+          animationDelay: `${b.delay}s`,
+        }} />
+      ))}
+    </div>
+  );
+}
+
 function FloatingParticles() {
   const particles = useMemo(() => {
-    const emojis = ['⭐', '✨', '💫', '🌟', '🎵', '❤️', '🌈'];
-    return Array.from({ length: 8 }, (_, i) => ({
+    const emojis = ['⭐', '✨', '💫', '🌟', '🎵', '❤️', '🌈', '💎', '🦋'];
+    return Array.from({ length: 12 }, (_, i) => ({
       emoji: emojis[i % emojis.length],
-      left: `${10 + (i * 12) % 80}%`,
-      delay: i * 0.7,
-      duration: 4 + (i % 3),
-      size: 14 + (i % 3) * 4,
+      left: `${5 + (i * 9) % 90}%`,
+      top: `${10 + (i * 13) % 70}%`,
+      delay: i * 0.5,
+      duration: 5 + (i % 4),
+      size: 16 + (i % 4) * 6,
     }));
   }, []);
 
   return (
-    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 0 }}>
+    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 1 }}>
       {particles.map((p, i) => (
         <span key={i} style={{
-          position: 'absolute', top: `${10 + (i * 15) % 70}%`, left: p.left,
-          fontSize: p.size, opacity: 0.15,
-          animation: `float ${p.duration}s ease infinite`,
+          position: 'absolute', top: p.top, left: p.left,
+          fontSize: p.size, opacity: 0.25,
+          animation: `floatSlow ${p.duration}s ease infinite`,
           animationDelay: `${p.delay}s`,
+          filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))',
         }}>{p.emoji}</span>
       ))}
     </div>
@@ -410,13 +448,14 @@ function FloatingParticles() {
 
 function ConfettiEffect({ active }) {
   const pieces = useMemo(() => {
-    const colors = ['#FF6B6B', '#4ECDC4', '#FFD93D', '#FF69B4', '#9B59B6', '#3498DB', '#2ECC71'];
-    return Array.from({ length: 30 }, (_, i) => ({
+    const colors = ['#FF6B6B', '#4ECDC4', '#FFD93D', '#FF69B4', '#9B59B6', '#3498DB', '#2ECC71', '#FF9500'];
+    return Array.from({ length: 50 }, (_, i) => ({
       color: colors[i % colors.length],
       left: `${Math.random() * 100}%`,
-      delay: Math.random() * 0.5,
-      duration: 1.5 + Math.random() * 1.5,
-      size: 6 + Math.random() * 8,
+      delay: Math.random() * 0.8,
+      duration: 2 + Math.random() * 2,
+      size: 8 + Math.random() * 12,
+      rotation: Math.random() * 360,
     }));
   }, []);
 
@@ -425,11 +464,14 @@ function ConfettiEffect({ active }) {
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', zIndex: 3000 }}>
       {pieces.map((p, i) => (
         <div key={i} style={{
-          position: 'absolute', top: -10, left: p.left,
-          width: p.size, height: p.size, borderRadius: i % 2 ? '50%' : '2px',
+          position: 'absolute', top: -20, left: p.left,
+          width: p.size, height: p.size * 0.6,
+          borderRadius: i % 3 === 0 ? '50%' : i % 3 === 1 ? '3px' : '50% 0',
           background: p.color,
+          boxShadow: `0 0 6px ${p.color}`,
           animation: `confettiDrop ${p.duration}s ease forwards`,
           animationDelay: `${p.delay}s`,
+          transform: `rotate(${p.rotation}deg)`,
         }} />
       ))}
     </div>
@@ -441,71 +483,111 @@ function StreakBadge({ streak }) {
   const fire = streak >= 5 ? '🔥🔥' : streak >= 3 ? '🔥' : '⚡';
   return (
     <div style={{
-      position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)',
-      background: streak >= 5 ? 'linear-gradient(135deg, #FF6B00, #FF4500)' : 'linear-gradient(135deg, #FFD93D, #FF9800)',
-      color: 'white', padding: '4px 14px', borderRadius: 20,
-      fontSize: 13, fontWeight: 700, fontFamily: "'Rubik', sans-serif",
-      boxShadow: '0 3px 12px rgba(255,152,0,0.4)',
-      animation: 'popIn 0.3s ease', zIndex: 50, whiteSpace: 'nowrap',
+      position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)',
+      background: streak >= 5
+        ? 'linear-gradient(135deg, #FF416C, #FF4B2B)'
+        : 'linear-gradient(135deg, #F7971E, #FFD200)',
+      color: 'white', padding: '6px 18px', borderRadius: 25,
+      fontSize: 14, fontWeight: 800, fontFamily: "'Rubik', sans-serif",
+      boxShadow: '0 4px 15px rgba(255,107,0,0.5), inset 0 1px 0 rgba(255,255,255,0.3)',
+      border: '2px solid rgba(255,255,255,0.3)',
+      animation: 'popIn 0.4s ease, pulse 1.5s ease infinite',
+      zIndex: 50, whiteSpace: 'nowrap',
+      textShadow: '0 1px 2px rgba(0,0,0,0.3)',
     }}>
       {fire} רצף {streak}!
     </div>
   );
 }
 
-function Button({ children, onClick, color = '#4ECDC4', size = 'medium', icon, disabled, style }) {
+// 3D Game-like button with glossy effect
+function Button({ children, onClick, color = '#4ECDC4', size = 'medium', icon, disabled, style, glow }) {
   const sizes = {
-    small: { padding: '8px 16px', fontSize: 14, borderRadius: 16 },
-    medium: { padding: '12px 28px', fontSize: 18, borderRadius: 20 },
-    large: { padding: '16px 40px', fontSize: 22, borderRadius: 24 },
+    small: { padding: '10px 20px', fontSize: 15, borderRadius: 14, iconSize: 18 },
+    medium: { padding: '14px 32px', fontSize: 18, borderRadius: 18, iconSize: 22 },
+    large: { padding: '18px 44px', fontSize: 22, borderRadius: 22, iconSize: 28 },
   };
   const s = sizes[size] || sizes.medium;
+
+  // Create lighter and darker shades
+  const lighterColor = `${color}`;
+  const darkerColor = `${color}cc`;
+
   return (
     <button onClick={onClick} disabled={disabled}
       style={{
-        ...s, border: 'none',
-        background: `linear-gradient(145deg, ${color}, ${color}dd)`,
-        color: 'white', fontFamily: "'Rubik', sans-serif", fontWeight: 700,
-        cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.5 : 1,
-        boxShadow: `0 6px 20px ${color}55, inset 0 1px 0 rgba(255,255,255,0.25)`,
-        transition: 'transform 0.15s, box-shadow 0.15s',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-        whiteSpace: 'nowrap', letterSpacing: '0.3px', ...style,
+        padding: s.padding, fontSize: s.fontSize, borderRadius: s.borderRadius,
+        border: 'none',
+        background: `linear-gradient(180deg, ${lighterColor} 0%, ${darkerColor} 100%)`,
+        color: 'white', fontFamily: "'Rubik', sans-serif", fontWeight: 800,
+        cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.6 : 1,
+        boxShadow: `
+          0 6px 0 ${color}99,
+          0 8px 15px rgba(0,0,0,0.3),
+          inset 0 2px 0 rgba(255,255,255,0.4),
+          inset 0 -2px 0 rgba(0,0,0,0.1)
+        `,
+        transition: 'transform 0.1s, box-shadow 0.1s',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+        whiteSpace: 'nowrap',
+        textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+        letterSpacing: '0.5px',
+        position: 'relative',
+        overflow: 'hidden',
+        animation: glow ? 'glowPulse 2s ease infinite' : 'none',
+        ...style,
       }}
     >
-      {icon && <span style={{ fontSize: s.fontSize + 4 }}>{icon}</span>}
+      {/* Shine effect */}
+      <div style={{
+        position: 'absolute', top: 0, left: '-100%', width: '100%', height: '50%',
+        background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+        animation: 'shimmer 3s ease infinite',
+      }} />
+      {icon && <span style={{ fontSize: s.iconSize, filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))' }}>{icon}</span>}
       {children}
     </button>
   );
 }
 
-function IconButton({ children, onClick, color = '#aaa', style }) {
+// Game-like icon button
+function IconButton({ children, onClick, color = '#5D9CEC', style }) {
   return (
     <button onClick={onClick}
       style={{
-        width: 44, height: 44, borderRadius: '50%', border: 'none',
-        background: color, color: 'white', fontSize: 20,
+        width: 50, height: 50, borderRadius: 15, border: 'none',
+        background: `linear-gradient(180deg, ${color} 0%, ${color}cc 100%)`,
+        color: 'white', fontSize: 22,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        cursor: 'pointer', boxShadow: '0 3px 10px rgba(0,0,0,0.15)',
-        transition: 'transform 0.15s', ...style,
+        cursor: 'pointer',
+        boxShadow: `
+          0 4px 0 ${color}88,
+          0 6px 12px rgba(0,0,0,0.25),
+          inset 0 2px 0 rgba(255,255,255,0.3)
+        `,
+        transition: 'transform 0.1s, box-shadow 0.1s',
+        ...style,
       }}
     >{children}</button>
   );
 }
 
+// Game-like navigation bar
 function NavBar({ current, onNavigate, stars, level }) {
   const items = [
-    { id: 'achievements', label: 'הישגים', icon: '🏆' },
-    { id: 'learn', label: 'לימוד', icon: '📖' },
-    { id: 'home', label: 'בית', icon: '🏠' },
+    { id: 'achievements', label: 'הישגים', icon: '🏆', color: '#FFD700' },
+    { id: 'learn', label: 'לימוד', icon: '📖', color: '#4ECDC4' },
+    { id: 'home', label: 'בית', icon: '🏠', color: '#FF6B6B' },
   ];
   return (
     <div style={{
-      position: 'absolute', bottom: 0, left: 0, right: 0, height: 70,
+      position: 'absolute', bottom: 0, left: 0, right: 0, height: 80,
       display: 'flex', alignItems: 'center', justifyContent: 'space-around',
-      background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-      borderRadius: '22px 22px 0 0',
-      boxShadow: '0 -4px 30px rgba(0,0,0,0.06)', zIndex: 100,
+      padding: '0 10px',
+      background: 'linear-gradient(180deg, #2C3E50 0%, #1a252f 100%)',
+      borderRadius: '25px 25px 0 0',
+      boxShadow: '0 -4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)',
+      zIndex: 100,
     }}>
       {items.map(item => {
         const isActive = current === item.id;
@@ -513,19 +595,32 @@ function NavBar({ current, onNavigate, stars, level }) {
           <button key={item.id} onClick={() => onNavigate(item.id)}
             style={{
               border: 'none', background: 'transparent', cursor: 'pointer',
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-              padding: '6px 18px', borderRadius: 14,
-              backgroundColor: isActive ? '#FFF3E0' : 'transparent',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+              padding: '8px 16px', borderRadius: 16,
+              position: 'relative',
               transition: 'all 0.2s',
             }}
           >
-            <span style={{ fontSize: 24, transition: 'transform 0.2s', transform: isActive ? 'scale(1.15)' : 'scale(1)' }}>
+            <div style={{
+              width: 52, height: 52, borderRadius: 16,
+              background: isActive
+                ? `linear-gradient(180deg, ${item.color} 0%, ${item.color}cc 100%)`
+                : 'linear-gradient(180deg, #4a5568 0%, #2d3748 100%)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 26,
+              boxShadow: isActive
+                ? `0 4px 0 ${item.color}88, 0 6px 15px ${item.color}44, inset 0 2px 0 rgba(255,255,255,0.3)`
+                : '0 3px 0 #1a202c, inset 0 1px 0 rgba(255,255,255,0.1)',
+              transform: isActive ? 'translateY(-5px)' : 'translateY(0)',
+              transition: 'all 0.2s',
+            }}>
               {item.icon}
-            </span>
+            </div>
             <span style={{
-              fontSize: 11, fontWeight: isActive ? 700 : 500,
-              color: isActive ? '#FF6B00' : '#999',
+              fontSize: 11, fontWeight: isActive ? 800 : 600,
+              color: isActive ? item.color : '#8892a0',
               fontFamily: "'Rubik', sans-serif",
+              textShadow: isActive ? `0 0 10px ${item.color}66` : 'none',
             }}>{item.label}</span>
           </button>
         );
@@ -545,22 +640,32 @@ function Feedback({ type, message }) {
     <div style={{
       position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      zIndex: 2000, background: 'rgba(0,0,0,0.4)', animation: 'fadeIn 0.2s ease',
+      zIndex: 2000, background: 'rgba(0,0,0,0.6)', animation: 'fadeIn 0.2s ease',
     }}>
       <div style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center',
-        padding: '30px 45px', borderRadius: 30, background: 'rgba(255,255,255,0.95)',
-        backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.2), 0 0 0 1px rgba(255,255,255,0.5) inset',
-        animation: 'popIn 0.35s ease',
+        padding: '35px 50px', borderRadius: 30,
+        background: isSuccess
+          ? 'linear-gradient(180deg, #56ab2f 0%, #a8e063 100%)'
+          : 'linear-gradient(180deg, #f093fb 0%, #f5576c 100%)',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.4), inset 0 2px 0 rgba(255,255,255,0.3)',
+        border: '3px solid rgba(255,255,255,0.3)',
+        animation: 'popIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
       }}>
-        <img
-          src={isSuccess ? ASSETS.images.mascotCelebrate : ASSETS.images.mascotEncourage}
-          alt="" style={{ width: 110, height: 110, objectFit: 'contain' }}
-        />
         <div style={{
-          fontSize: 26, fontWeight: 700, marginTop: 10,
-          color: isSuccess ? '#4CAF50' : '#FF9800', fontFamily: "'Rubik', sans-serif",
+          width: 100, height: 100, borderRadius: '50%',
+          background: 'rgba(255,255,255,0.2)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 55, marginBottom: 15,
+          boxShadow: 'inset 0 -3px 0 rgba(0,0,0,0.1)',
+          animation: 'bounce 1s ease infinite',
+        }}>
+          {isSuccess ? '🎉' : '💪'}
+        </div>
+        <div style={{
+          fontSize: 28, fontWeight: 800,
+          color: 'white', fontFamily: "'Rubik', sans-serif",
+          textShadow: '0 2px 4px rgba(0,0,0,0.3)',
         }}>
           {message || (isSuccess ? randomFrom(ENCOURAGEMENTS) : randomFrom(RETRY_MESSAGES))}
         </div>
@@ -569,33 +674,100 @@ function Feedback({ type, message }) {
   );
 }
 
-function ProgressBar({ current, total, color }) {
+// Game-like progress bar with 3D effect
+function ProgressBar({ current, total, color = '#FFD93D' }) {
+  const percentage = (current / total) * 100;
   return (
     <div style={{
-      width: '100%', maxWidth: 280, height: 10, borderRadius: 5,
-      background: 'rgba(0,0,0,0.08)', overflow: 'hidden',
+      width: '100%', maxWidth: 300, height: 18, borderRadius: 10,
+      background: 'linear-gradient(180deg, #1a1a2e 0%, #16213e 100%)',
+      boxShadow: 'inset 0 3px 6px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.1)',
+      padding: 3,
+      border: '2px solid rgba(255,255,255,0.1)',
     }}>
       <div style={{
-        width: `${(current / total) * 100}%`, height: '100%', borderRadius: 5,
-        background: color || 'linear-gradient(90deg, #FFD93D, #FF6B00)',
-        transition: 'width 0.5s ease',
-      }} />
+        width: `${percentage}%`, height: '100%', borderRadius: 7,
+        background: `linear-gradient(180deg, ${color} 0%, ${color}cc 100%)`,
+        boxShadow: `0 0 10px ${color}66, inset 0 2px 0 rgba(255,255,255,0.4)`,
+        transition: 'width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        {/* Shine animation */}
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, height: '50%',
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.4) 0%, transparent 100%)',
+          borderRadius: '7px 7px 0 0',
+        }} />
+      </div>
     </div>
   );
 }
 
 function LevelBadge({ level }) {
   const titles = ['', 'מתחיל', 'חוקר', 'יודע', 'מומחה', 'גאון', 'אלוף'];
-  const colors = ['', '#78909C', '#4ECDC4', '#2196F3', '#9C27B0', '#FF6B00', '#FFD700'];
+  const colors = ['', '#78909C', '#4ECDC4', '#3498DB', '#9B59B6', '#FF6B00', '#FFD700'];
+  const bgColors = ['', '#455a64', '#26a69a', '#1976D2', '#7B1FA2', '#E65100', '#FFA000'];
   const l = Math.min(level, 6);
   return (
     <div style={{
-      display: 'inline-flex', alignItems: 'center', gap: 4,
-      background: `${colors[l]}22`, color: colors[l],
-      padding: '3px 10px', borderRadius: 10,
-      fontSize: 12, fontWeight: 700, fontFamily: "'Rubik', sans-serif",
+      display: 'inline-flex', alignItems: 'center', gap: 6,
+      background: `linear-gradient(135deg, ${bgColors[l]} 0%, ${colors[l]} 100%)`,
+      color: 'white',
+      padding: '6px 14px', borderRadius: 12,
+      fontSize: 13, fontWeight: 800, fontFamily: "'Rubik', sans-serif",
+      boxShadow: `0 3px 0 ${bgColors[l]}88, 0 4px 10px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.3)`,
+      textShadow: '0 1px 2px rgba(0,0,0,0.3)',
     }}>
+      <span style={{ fontSize: 16 }}>⭐</span>
       רמה {l}: {titles[l]}
+    </div>
+  );
+}
+
+// Game-like card component
+function GameCard({ children, color = '#ffffff', style: customStyle, onClick, animate = true }) {
+  return (
+    <div onClick={onClick} style={{
+      background: `linear-gradient(180deg, ${color} 0%, ${color}ee 100%)`,
+      borderRadius: 24,
+      padding: 20,
+      boxShadow: `
+        0 8px 0 rgba(0,0,0,0.15),
+        0 12px 30px rgba(0,0,0,0.2),
+        inset 0 2px 0 rgba(255,255,255,0.8),
+        inset 0 -2px 0 rgba(0,0,0,0.05)
+      `,
+      border: '3px solid rgba(255,255,255,0.5)',
+      cursor: onClick ? 'pointer' : 'default',
+      transition: 'transform 0.2s, box-shadow 0.2s',
+      animation: animate ? 'popIn 0.4s ease' : 'none',
+      ...customStyle,
+    }}>
+      {children}
+    </div>
+  );
+}
+
+// Stars display for game UI
+function StarsDisplay({ count, size = 'medium' }) {
+  const sizes = { small: 14, medium: 20, large: 28 };
+  const s = sizes[size] || sizes.medium;
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 6,
+      background: 'linear-gradient(180deg, #2C3E50 0%, #1a252f 100%)',
+      padding: `${s/3}px ${s}px`,
+      borderRadius: s,
+      boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.3), 0 1px 0 rgba(255,255,255,0.1)',
+      border: '2px solid rgba(255,255,255,0.1)',
+    }}>
+      <span style={{ fontSize: s, filter: 'drop-shadow(0 2px 4px rgba(255,215,0,0.5))' }}>⭐</span>
+      <span style={{
+        fontSize: s * 0.9, fontWeight: 800, color: '#FFD700',
+        fontFamily: "'Rubik', sans-serif",
+        textShadow: '0 0 10px rgba(255,215,0,0.5)',
+      }}>{count}</span>
     </div>
   );
 }
@@ -614,17 +786,15 @@ function HomeScreen({ onActivity, speak, progress }) {
   useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
 
   const activities = [
-    // Letters section
-    { id: 'learn', icon: '📖', label: 'לימוד אותיות', desc: 'למד את האותיות, הצלילים והמילים', color: '#4ECDC4', gradient: 'linear-gradient(135deg, #E0F7FA, #B2EBF2)', section: 'אותיות' },
-    // Nikud section
-    { id: 'nikud', icon: '🔤', label: 'לימוד ניקוד', desc: 'למד את התנועות - קמץ, פתח, חיריק...', color: '#9B59B6', gradient: 'linear-gradient(135deg, #F3E5F5, #E1BEE7)', section: 'ניקוד' },
-    // Syllables section
-    { id: 'syllables', icon: '🧩', label: 'לימוד צירופים', desc: 'צרף אותיות עם ניקוד - בָּ, מִ, שֵׁ...', color: '#E67E22', gradient: 'linear-gradient(135deg, #FFF3E0, #FFE0B2)', section: 'צירופים' },
+    // Learning section
+    { id: 'learn', icon: '📖', label: 'לימוד אותיות', desc: 'למד את האותיות, הצלילים והמילים', color: '#4ECDC4', bgColor: '#26a69a' },
+    { id: 'nikud', icon: '🔤', label: 'לימוד ניקוד', desc: 'למד את התנועות - קמץ, פתח, חיריק...', color: '#9B59B6', bgColor: '#7B1FA2' },
+    { id: 'syllables', icon: '🧩', label: 'לימוד צירופים', desc: 'צרף אותיות עם ניקוד - בָּ, מִ, שֵׁ...', color: '#E67E22', bgColor: '#E65100' },
     // Games section
-    { id: 'find', icon: '🔍', label: 'מצא את האות', desc: 'שמע את הצליל ומצא את האות!', color: '#FF6B6B', gradient: 'linear-gradient(135deg, #FFEBEE, #FFCDD2)', section: 'משחקים' },
-    { id: 'match', icon: '🎯', label: 'התאם לתמונה', desc: 'ראה תמונה ובחר את האות הנכונה', color: '#2ECC71', gradient: 'linear-gradient(135deg, #E8F5E9, #C8E6C9)', section: 'משחקים' },
-    { id: 'sound', icon: '🎵', label: 'זהה את הצליל', desc: 'שמע צליל ובחר איזו אות עושה אותו', color: '#FF9800', gradient: 'linear-gradient(135deg, #FFF8E1, #FFECB3)', section: 'משחקים' },
-    { id: 'syllableGame', icon: '🎮', label: 'משחק צירופים', desc: 'שמע צירוף ומצא אותו!', color: '#3498DB', gradient: 'linear-gradient(135deg, #E3F2FD, #BBDEFB)', section: 'משחקים' },
+    { id: 'find', icon: '🔍', label: 'מצא את האות', desc: 'שמע את הצליל ומצא את האות!', color: '#FF6B6B', bgColor: '#e53935' },
+    { id: 'match', icon: '🎯', label: 'התאם לתמונה', desc: 'ראה תמונה ובחר את האות הנכונה', color: '#2ECC71', bgColor: '#43A047' },
+    { id: 'sound', icon: '🎵', label: 'זהה את הצליל', desc: 'שמע צליל ובחר איזו אות עושה אותו', color: '#FF9800', bgColor: '#EF6C00' },
+    { id: 'syllableGame', icon: '🎮', label: 'משחק צירופים', desc: 'שמע צירוף ומצא אותו!', color: '#3498DB', bgColor: '#1976D2' },
   ];
 
   return (
@@ -633,32 +803,41 @@ function HomeScreen({ onActivity, speak, progress }) {
       display: 'flex', flexDirection: 'column', alignItems: 'center',
       overflow: 'auto', zIndex: 1,
     }}>
-      <div style={{
-        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0,
-        background: 'linear-gradient(180deg, #FFF8E7 0%, #FFE8EC 50%, #E8F4FD 100%)',
-      }} />
+      {/* Game-like gradient background */}
+      <GameBackground color1="#1a5276" color2="#2e86ab" color3="#48b8a0" />
       <FloatingParticles />
 
       <div style={{
         position: 'relative', zIndex: 1, width: '100%', maxWidth: 420,
         padding: '15px 20px 30px', display: 'flex', flexDirection: 'column', alignItems: 'center',
       }}>
+        {/* Header with stars */}
+        <div style={{
+          width: '100%', display: 'flex', justifyContent: 'flex-end', marginBottom: 5,
+        }}>
+          <StarsDisplay count={progress.stars} size="medium" />
+        </div>
+
         {/* Mascot & Title */}
         <img src={ASSETS.images.mascotHappy} alt="ינשוף" style={{
-          width: 100, height: 100, objectFit: 'contain',
+          width: 110, height: 110, objectFit: 'contain',
           animation: 'float 3s ease infinite', marginBottom: 5,
+          filter: 'drop-shadow(0 8px 15px rgba(0,0,0,0.3))',
         }} />
         <h1 style={{
-          fontSize: 34, fontWeight: 700, color: '#2D3436', textAlign: 'center',
-          fontFamily: "'Rubik', sans-serif", margin: '0 0 2px',
-          textShadow: '0 2px 4px rgba(0,0,0,0.08)',
+          fontSize: 36, fontWeight: 800, color: 'white', textAlign: 'center',
+          fontFamily: "'Rubik', sans-serif", margin: '0 0 6px',
+          textShadow: '0 3px 6px rgba(0,0,0,0.3), 0 0 30px rgba(255,255,255,0.2)',
         }}>לומדים לקרוא! 🦉</h1>
         <LevelBadge level={progress.level} />
-        <p style={{ fontSize: 15, color: '#888', marginTop: 6, marginBottom: 16, fontFamily: "'Rubik', sans-serif" }}>
+        <p style={{
+          fontSize: 15, color: 'rgba(255,255,255,0.8)', marginTop: 8, marginBottom: 16,
+          fontFamily: "'Rubik', sans-serif", textShadow: '0 1px 3px rgba(0,0,0,0.2)',
+        }}>
           בחר פעילות להתחיל
         </p>
 
-        {/* Activity Cards */}
+        {/* Activity Cards - Game style */}
         {activities.map((act, i) => (
           <div
             key={act.id}
@@ -670,50 +849,82 @@ function HomeScreen({ onActivity, speak, progress }) {
             }}
             style={{
               width: '100%', display: 'flex', alignItems: 'center', gap: 14,
-              padding: '16px 20px', marginBottom: 12,
-              background: act.gradient, borderRadius: 22,
-              border: `1.5px solid ${act.color}28`,
-              boxShadow: `0 6px 20px ${act.color}15, 0 2px 6px rgba(0,0,0,0.03)`,
-              cursor: 'pointer', transition: 'transform 0.2s',
+              padding: '14px 18px', marginBottom: 10,
+              background: `linear-gradient(180deg, ${act.color} 0%, ${act.bgColor} 100%)`,
+              borderRadius: 18,
+              border: '3px solid rgba(255,255,255,0.3)',
+              boxShadow: `
+                0 6px 0 ${act.bgColor}99,
+                0 8px 20px rgba(0,0,0,0.25),
+                inset 0 2px 0 rgba(255,255,255,0.3)
+              `,
+              cursor: 'pointer',
+              transition: 'transform 0.1s, box-shadow 0.1s',
               animation: `fadeInUp 0.4s ease forwards`,
-              animationDelay: `${i * 0.1}s`, opacity: 0,
+              animationDelay: `${i * 0.08}s`, opacity: 0,
+              position: 'relative',
+              overflow: 'hidden',
             }}
           >
+            {/* Shine effect */}
             <div style={{
-              width: 54, height: 54, borderRadius: 17,
-              background: 'rgba(255,255,255,0.9)', display: 'flex',
-              alignItems: 'center', justifyContent: 'center',
-              fontSize: 28, flexShrink: 0,
-              boxShadow: `0 4px 14px ${act.color}20`,
-              border: `1px solid rgba(255,255,255,0.7)`,
+              position: 'absolute', top: 0, left: '-100%', width: '50%', height: '100%',
+              background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
+              animation: 'shimmer 4s ease infinite',
+              animationDelay: `${i * 0.3}s`,
+            }} />
+            <div style={{
+              width: 52, height: 52, borderRadius: 14,
+              background: 'rgba(255,255,255,0.25)',
+              backdropFilter: 'blur(5px)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 26, flexShrink: 0,
+              boxShadow: 'inset 0 2px 0 rgba(255,255,255,0.3), inset 0 -2px 0 rgba(0,0,0,0.1)',
+              border: '2px solid rgba(255,255,255,0.2)',
             }}>
               {act.icon}
             </div>
-            <div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: '#2D3436', fontFamily: "'Rubik', sans-serif" }}>{act.label}</div>
-              <div style={{ fontSize: 12, color: '#888', fontFamily: "'Rubik', sans-serif", marginTop: 2 }}>{act.desc}</div>
+            <div style={{ flex: 1 }}>
+              <div style={{
+                fontSize: 17, fontWeight: 700, color: 'white', fontFamily: "'Rubik', sans-serif",
+                textShadow: '0 1px 3px rgba(0,0,0,0.3)',
+              }}>{act.label}</div>
+              <div style={{
+                fontSize: 11, color: 'rgba(255,255,255,0.85)', fontFamily: "'Rubik', sans-serif", marginTop: 2,
+                textShadow: '0 1px 2px rgba(0,0,0,0.2)',
+              }}>{act.desc}</div>
             </div>
-            <span style={{ marginRight: 'auto', fontSize: 18, color: '#ccc' }}>❮</span>
+            <span style={{
+              fontSize: 20, color: 'rgba(255,255,255,0.6)',
+              textShadow: '0 1px 2px rgba(0,0,0,0.2)',
+            }}>❮</span>
           </div>
         ))}
 
-        {/* Stats */}
-        <div style={{ display: 'flex', gap: 10, marginTop: 12, width: '100%' }}>
+        {/* Stats - Game style */}
+        <div style={{ display: 'flex', gap: 8, marginTop: 14, width: '100%' }}>
           {[
-            { icon: '⭐', val: progress.stars, label: 'כוכבים', color: '#FFB800' },
-            { icon: '🔤', val: `${progress.learned.length}/${LETTERS.length}`, label: 'אותיות', color: '#4ECDC4' },
-            { icon: '🔥', val: progress.bestStreak, label: 'שיא רצף', color: '#FF6B00' },
+            { icon: '⭐', val: progress.stars, label: 'כוכבים', color: '#FFD700', bgColor: '#FFA000' },
+            { icon: '🔤', val: `${progress.learned.length}/${LETTERS.length}`, label: 'אותיות', color: '#4ECDC4', bgColor: '#26a69a' },
+            { icon: '🔥', val: progress.bestStreak, label: 'שיא רצף', color: '#FF6B6B', bgColor: '#e53935' },
           ].map((s, i) => (
             <div key={i} style={{
               flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-              background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(10px)',
-              padding: '12px 6px', borderRadius: 18,
-              boxShadow: '0 4px 16px rgba(0,0,0,0.05)', border: '1px solid rgba(255,255,255,0.6)',
-              animation: `fadeInUp 0.4s ease forwards`, animationDelay: `${0.4 + i * 0.1}s`, opacity: 0,
+              background: `linear-gradient(180deg, ${s.color} 0%, ${s.bgColor} 100%)`,
+              padding: '10px 6px', borderRadius: 14,
+              boxShadow: `0 4px 0 ${s.bgColor}99, 0 6px 15px rgba(0,0,0,0.2), inset 0 2px 0 rgba(255,255,255,0.3)`,
+              border: '2px solid rgba(255,255,255,0.3)',
+              animation: `fadeInUp 0.4s ease forwards`, animationDelay: `${0.5 + i * 0.08}s`, opacity: 0,
             }}>
-              <span style={{ fontSize: 20 }}>{s.icon}</span>
-              <span style={{ fontSize: 20, fontWeight: 700, color: s.color, fontFamily: "'Rubik', sans-serif" }}>{s.val}</span>
-              <span style={{ fontSize: 10, color: '#aaa', fontFamily: "'Rubik', sans-serif" }}>{s.label}</span>
+              <span style={{ fontSize: 20, filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.2))' }}>{s.icon}</span>
+              <span style={{
+                fontSize: 18, fontWeight: 800, color: 'white', fontFamily: "'Rubik', sans-serif",
+                textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+              }}>{s.val}</span>
+              <span style={{
+                fontSize: 10, color: 'rgba(255,255,255,0.9)', fontFamily: "'Rubik', sans-serif",
+                textShadow: '0 1px 2px rgba(0,0,0,0.2)',
+              }}>{s.label}</span>
             </div>
           ))}
         </div>
@@ -831,10 +1042,8 @@ function LearnScreen({ speak, progress, addLetter, addStars, onBack }) {
       position: 'absolute', top: 0, left: 0, right: 0, bottom: 70,
       display: 'flex', flexDirection: 'column', zIndex: 1,
     }}>
-      <div style={{
-        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0,
-        background: `linear-gradient(180deg, ${letter.color}11 0%, #FFF8E7 100%)`,
-      }} />
+      {/* Game-like gradient background with letter color accent */}
+      <GameBackground color1="#1a5276" color2="#2e86ab" color3={letter.color} />
       <FloatingParticles />
       <ConfettiEffect active={showConfetti} />
       {showFeedback && <Feedback type="success" />}
@@ -844,11 +1053,14 @@ function LearnScreen({ speak, progress, addLetter, addStars, onBack }) {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '10px 16px', position: 'relative', zIndex: 1, flexShrink: 0,
       }}>
-        <IconButton onClick={onBack} color="#ccc">✕</IconButton>
+        <IconButton onClick={onBack} color="#5D9CEC">✕</IconButton>
         <div style={{
-          background: 'white', padding: '5px 14px', borderRadius: 20,
-          fontSize: 14, fontWeight: 600, color: '#555', fontFamily: "'Rubik', sans-serif",
-          boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+          background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(10px)',
+          padding: '6px 16px', borderRadius: 20,
+          fontSize: 14, fontWeight: 700, color: 'white', fontFamily: "'Rubik', sans-serif",
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3), 0 2px 8px rgba(0,0,0,0.15)',
+          border: '2px solid rgba(255,255,255,0.2)',
+          textShadow: '0 1px 2px rgba(0,0,0,0.3)',
         }}>
           אות {idx + 1} מתוך {LETTERS.length}
         </div>
@@ -1082,10 +1294,8 @@ function NikudLearnScreen({ speak, progress, addStars, onBack }) {
       position: 'absolute', top: 0, left: 0, right: 0, bottom: 70,
       display: 'flex', flexDirection: 'column', zIndex: 1,
     }}>
-      <div style={{
-        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0,
-        background: `linear-gradient(180deg, ${nikud.color}15 0%, #FFF8E7 100%)`,
-      }} />
+      {/* Game-like gradient background with nikud color accent */}
+      <GameBackground color1="#4a148c" color2="#7b1fa2" color3={nikud.color} />
       <FloatingParticles />
       <ConfettiEffect active={showConfetti} />
       {showFeedback && <Feedback type="success" />}
@@ -1095,11 +1305,14 @@ function NikudLearnScreen({ speak, progress, addStars, onBack }) {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '10px 16px', position: 'relative', zIndex: 1, flexShrink: 0,
       }}>
-        <IconButton onClick={onBack} color="#ccc">✕</IconButton>
+        <IconButton onClick={onBack} color="#9B59B6">✕</IconButton>
         <div style={{
-          background: 'white', padding: '5px 14px', borderRadius: 20,
-          fontSize: 14, fontWeight: 600, color: '#555', fontFamily: "'Rubik', sans-serif",
-          boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+          background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(10px)',
+          padding: '6px 16px', borderRadius: 20,
+          fontSize: 14, fontWeight: 700, color: 'white', fontFamily: "'Rubik', sans-serif",
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3), 0 2px 8px rgba(0,0,0,0.15)',
+          border: '2px solid rgba(255,255,255,0.2)',
+          textShadow: '0 1px 2px rgba(0,0,0,0.3)',
         }}>
           ניקוד {idx + 1} מתוך {NIKUD_BASIC.length}
         </div>
@@ -1347,10 +1560,8 @@ function SyllablesLearnScreen({ speak, progress, addStars, onBack }) {
       position: 'absolute', top: 0, left: 0, right: 0, bottom: 70,
       display: 'flex', flexDirection: 'column', zIndex: 1,
     }}>
-      <div style={{
-        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0,
-        background: `linear-gradient(180deg, ${letterColor}15 0%, #FFF8E7 100%)`,
-      }} />
+      {/* Game-like gradient background with letter/nikud color accent */}
+      <GameBackground color1="#e65100" color2="#f57c00" color3={letterColor} />
       <FloatingParticles />
       <ConfettiEffect active={showConfetti} />
       {showFeedback && <Feedback type="success" />}
@@ -1360,11 +1571,14 @@ function SyllablesLearnScreen({ speak, progress, addStars, onBack }) {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '10px 16px', position: 'relative', zIndex: 1, flexShrink: 0,
       }}>
-        <IconButton onClick={onBack} color="#ccc">✕</IconButton>
+        <IconButton onClick={onBack} color="#E67E22">✕</IconButton>
         <div style={{
-          background: 'white', padding: '5px 14px', borderRadius: 20,
-          fontSize: 14, fontWeight: 600, color: '#555', fontFamily: "'Rubik', sans-serif",
-          boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+          background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(10px)',
+          padding: '6px 16px', borderRadius: 20,
+          fontSize: 14, fontWeight: 700, color: 'white', fontFamily: "'Rubik', sans-serif",
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3), 0 2px 8px rgba(0,0,0,0.15)',
+          border: '2px solid rgba(255,255,255,0.2)',
+          textShadow: '0 1px 2px rgba(0,0,0,0.3)',
         }}>
           אות {currentLetter} • ניקוד {nikudIdx + 1}/{nikudList.length}
         </div>
@@ -1589,38 +1803,48 @@ function GameScreen({ speak, addStars, addGame, addStreak, resetStreak, onBack, 
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 70,
     display: 'flex', flexDirection: 'column', zIndex: 1,
   };
-  const bgStyle = {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0,
-    background: bgGradient,
-  };
+
+  // Get game-specific background colors
+  const bgColors = gameConfig.bgColors || { color1: '#1a5276', color2: '#2e86ab', color3: color };
 
   if (phase === 'intro') {
     return (
       <div style={screenStyle}>
-        <div style={bgStyle} />
+        <GameBackground color1={bgColors.color1} color2={bgColors.color2} color3={bgColors.color3} />
         <FloatingParticles />
         <div style={{ display: 'flex', padding: '12px 16px', position: 'relative', zIndex: 1 }}>
-          <IconButton onClick={onBack} color="#ccc">✕</IconButton>
+          <IconButton onClick={onBack} color={color}>✕</IconButton>
         </div>
         <div style={{
           flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
           justifyContent: 'center', gap: 14, position: 'relative', zIndex: 1,
         }}>
-          <img src={ASSETS.images.mascotHappy} alt="" style={{ width: 120, height: 120, objectFit: 'contain', animation: 'float 3s ease infinite' }} />
-          <span style={{ fontSize: 50, animation: 'popIn 0.4s ease' }}>{icon}</span>
-          <h2 style={{ fontSize: 28, fontWeight: 700, color: '#2D3436', fontFamily: "'Rubik', sans-serif", animation: 'fadeInUp 0.4s ease 0.1s forwards', opacity: 0 }}>{title}</h2>
+          <img src={ASSETS.images.mascotHappy} alt="" style={{
+            width: 120, height: 120, objectFit: 'contain', animation: 'float 3s ease infinite',
+            filter: 'drop-shadow(0 8px 15px rgba(0,0,0,0.3))',
+          }} />
+          <span style={{ fontSize: 55, animation: 'popIn 0.4s ease', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))' }}>{icon}</span>
+          <h2 style={{
+            fontSize: 30, fontWeight: 800, color: 'white', fontFamily: "'Rubik', sans-serif",
+            animation: 'fadeInUp 0.4s ease 0.1s forwards', opacity: 0,
+            textShadow: '0 3px 6px rgba(0,0,0,0.3)',
+          }}>{title}</h2>
           <p style={{
-            fontSize: 15, color: '#777', fontFamily: "'Rubik', sans-serif",
+            fontSize: 16, color: 'rgba(255,255,255,0.9)', fontFamily: "'Rubik', sans-serif",
             textAlign: 'center', padding: '0 30px', animation: 'fadeInUp 0.4s ease 0.2s forwards', opacity: 0,
+            textShadow: '0 1px 3px rgba(0,0,0,0.2)',
           }}>
             {gameConfig.description}
           </p>
           <div style={{ animation: 'fadeInUp 0.4s ease 0.3s forwards', opacity: 0, marginTop: 5 }}>
-            <Button onClick={startGame} color={color} size="large" icon="▶">התחל משחק</Button>
+            <Button onClick={startGame} color={color} size="large" icon="▶" glow>התחל משחק</Button>
           </div>
-          <div style={{ animation: 'fadeInUp 0.4s ease 0.4s forwards', opacity: 0 }}>
+          <div style={{ animation: 'fadeInUp 0.4s ease 0.4s forwards', opacity: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
             <LevelBadge level={progress.level} />
-            <span style={{ fontSize: 12, color: '#aaa', marginRight: 8, fontFamily: "'Rubik', sans-serif" }}>
+            <span style={{
+              fontSize: 12, color: 'rgba(255,255,255,0.7)', fontFamily: "'Rubik', sans-serif",
+              textShadow: '0 1px 2px rgba(0,0,0,0.2)',
+            }}>
               ({numOptions} אפשרויות)
             </span>
           </div>
@@ -1633,28 +1857,34 @@ function GameScreen({ speak, addStars, addGame, addStreak, resetStreak, onBack, 
     const totalStars = score * 2 + Math.max(0, streak - 2) * 2;
     return (
       <div style={screenStyle}>
-        <div style={bgStyle} />
+        <GameBackground color1={bgColors.color1} color2={bgColors.color2} color3={bgColors.color3} />
         <ConfettiEffect active={showConfetti} />
         <div style={{
           flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
           justifyContent: 'center', gap: 14, position: 'relative', zIndex: 1,
         }}>
-          <img src={ASSETS.images.mascotCelebrate} alt="" style={{ width: 120, height: 120, objectFit: 'contain', animation: 'bounce 1s ease infinite' }} />
+          <img src={ASSETS.images.mascotCelebrate} alt="" style={{
+            width: 130, height: 130, objectFit: 'contain', animation: 'bounce 1s ease infinite',
+            filter: 'drop-shadow(0 8px 15px rgba(0,0,0,0.3))',
+          }} />
           <div style={{
-            background: 'white', padding: '25px 45px', borderRadius: 26,
-            boxShadow: '0 8px 30px rgba(0,0,0,0.1)', textAlign: 'center',
-            animation: 'popIn 0.4s ease',
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.9) 100%)',
+            backdropFilter: 'blur(10px)',
+            padding: '28px 50px', borderRadius: 24,
+            boxShadow: '0 8px 0 rgba(0,0,0,0.1), 0 12px 40px rgba(0,0,0,0.2), inset 0 2px 0 rgba(255,255,255,1)',
+            border: '3px solid rgba(255,255,255,0.5)',
+            textAlign: 'center', animation: 'popIn 0.4s ease',
           }}>
-            <div style={{ fontSize: 18, color: '#888', fontFamily: "'Rubik', sans-serif" }}>
+            <div style={{ fontSize: 20, color: '#888', fontFamily: "'Rubik', sans-serif", fontWeight: 600 }}>
               {score === TOTAL ? 'מושלם! 🌟' : score >= TOTAL - 1 ? 'כמעט מושלם!' : 'סיימת!'}
             </div>
-            <div style={{ fontSize: 50, fontWeight: 700, color: '#2D3436', fontFamily: "'Rubik', sans-serif" }}>{score} / {TOTAL}</div>
-            <div style={{ fontSize: 20, color: '#FFB800', fontFamily: "'Rubik', sans-serif" }}>⭐ +{totalStars}</div>
-            {score === TOTAL && <div style={{ fontSize: 14, color: '#4CAF50', marginTop: 5, fontFamily: "'Rubik', sans-serif" }}>בונוס ציון מושלם! 🎯</div>}
+            <div style={{ fontSize: 56, fontWeight: 800, color: '#2D3436', fontFamily: "'Rubik', sans-serif" }}>{score} / {TOTAL}</div>
+            <div style={{ fontSize: 22, color: '#FFB800', fontFamily: "'Rubik', sans-serif", fontWeight: 700 }}>⭐ +{totalStars}</div>
+            {score === TOTAL && <div style={{ fontSize: 15, color: '#4CAF50', marginTop: 8, fontFamily: "'Rubik', sans-serif", fontWeight: 600 }}>בונוס ציון מושלם! 🎯</div>}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>
-            <Button onClick={startGame} color={color} size="large" icon="🔄">שחק שוב</Button>
-            <Button onClick={onBack} color="#BDBDBD" size="medium" icon="🏠">חזרה הביתה</Button>
+            <Button onClick={startGame} color={color} size="large" icon="🔄" glow>שחק שוב</Button>
+            <Button onClick={onBack} color="#5D9CEC" size="medium" icon="🏠">חזרה הביתה</Button>
           </div>
         </div>
       </div>
@@ -1664,7 +1894,7 @@ function GameScreen({ speak, addStars, addGame, addStreak, resetStreak, onBack, 
   // PLAYING
   return (
     <div style={screenStyle}>
-      <div style={bgStyle} />
+      <GameBackground color1={bgColors.color1} color2={bgColors.color2} color3={bgColors.color3} />
       <FloatingParticles />
       {feedback && <Feedback type={feedback} />}
       <StreakBadge streak={streak} />
@@ -1673,11 +1903,14 @@ function GameScreen({ speak, addStars, addGame, addStreak, resetStreak, onBack, 
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '10px 16px', position: 'relative', zIndex: 1, flexShrink: 0,
       }}>
-        <IconButton onClick={onBack} color="#ccc">✕</IconButton>
+        <IconButton onClick={onBack} color={color}>✕</IconButton>
         <div style={{
-          background: 'white', padding: '5px 14px', borderRadius: 20,
-          fontSize: 14, fontWeight: 600, color: '#555', fontFamily: "'Rubik', sans-serif",
-          boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+          background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(10px)',
+          padding: '6px 16px', borderRadius: 20,
+          fontSize: 14, fontWeight: 700, color: 'white', fontFamily: "'Rubik', sans-serif",
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3), 0 2px 8px rgba(0,0,0,0.15)',
+          border: '2px solid rgba(255,255,255,0.2)',
+          textShadow: '0 1px 2px rgba(0,0,0,0.3)',
         }}>
           שאלה {round + 1} מתוך {TOTAL}
         </div>
@@ -1751,7 +1984,7 @@ function FindGameWrapper(props) {
     title: 'מצא את האות',
     icon: '🔍',
     color: '#FF6B6B',
-    bgGradient: 'linear-gradient(180deg, #FDE8EF 0%, #FFF8E7 100%)',
+    bgColors: { color1: '#c62828', color2: '#e53935', color3: '#FF6B6B' },
     description: 'שמע את הצליל ומצא איזו אות עושה אותו!',
     TOTAL: 5,
     generateRound: (numOpts, prevLetter) => {
@@ -1792,7 +2025,7 @@ function MatchGameWrapper(props) {
     title: 'התאם לתמונה',
     icon: '🎯',
     color: '#9B59B6',
-    bgGradient: 'linear-gradient(180deg, #EDE7F6 0%, #FFF8E7 100%)',
+    bgColors: { color1: '#4a148c', color2: '#7b1fa2', color3: '#9B59B6' },
     description: 'ראה את התמונה ובחר באיזו אות המילה מתחילה!',
     TOTAL: 5,
     generateRound: (numOpts, prevLetter) => {
@@ -1830,7 +2063,7 @@ function SoundGameWrapper(props) {
     title: 'זהה את הצליל',
     icon: '🎵',
     color: '#FF9800',
-    bgGradient: 'linear-gradient(180deg, #FFF3E0 0%, #FFF8E7 100%)',
+    bgColors: { color1: '#e65100', color2: '#f57c00', color3: '#FF9800' },
     description: 'שמע את צליל האות ובחר איזו אות עושה את הצליל הזה!',
     TOTAL: 5,
     generateRound: (numOpts, prevLetter) => {
@@ -1874,7 +2107,7 @@ function SyllableGameWrapper(props) {
     title: 'משחק צירופים',
     icon: '🧩',
     color: '#3498DB',
-    bgGradient: 'linear-gradient(180deg, #E3F2FD 0%, #FFF8E7 100%)',
+    bgColors: { color1: '#0d47a1', color2: '#1976d2', color3: '#3498DB' },
     description: 'שמע את הצירוף ומצא אותו! בָּ, מִ, שֵׁ...',
     TOTAL: 5,
     generateRound: (numOpts, prevSyllable) => {
@@ -2144,9 +2377,9 @@ function LearnHubScreen({ onSelect, speak, progress, onBack }) {
   useEffect(() => { speak('בחר מה ללמוד!'); }, [speak]);
 
   const options = [
-    { id: 'letters', icon: '📖', label: 'אותיות', desc: 'למד את 22 האותיות', color: '#4ECDC4', progress: `${progress.learned.length}/${LETTERS.length}` },
-    { id: 'nikud', icon: '🔤', label: 'ניקוד', desc: 'למד את התנועות', color: '#9B59B6', progress: '' },
-    { id: 'syllables', icon: '🧩', label: 'צירופים', desc: 'אותיות + ניקוד', color: '#E67E22', progress: '' },
+    { id: 'letters', icon: '📖', label: 'אותיות', desc: 'למד את 22 האותיות', color: '#4ECDC4', bgColor: '#26a69a', progress: `${progress.learned.length}/${LETTERS.length}` },
+    { id: 'nikud', icon: '🔤', label: 'ניקוד', desc: 'למד את התנועות', color: '#9B59B6', bgColor: '#7B1FA2', progress: '' },
+    { id: 'syllables', icon: '🧩', label: 'צירופים', desc: 'אותיות + ניקוד', color: '#E67E22', bgColor: '#E65100', progress: '' },
   ];
 
   return (
@@ -2154,19 +2387,20 @@ function LearnHubScreen({ onSelect, speak, progress, onBack }) {
       position: 'absolute', top: 0, left: 0, right: 0, bottom: 70,
       display: 'flex', flexDirection: 'column', zIndex: 1,
     }}>
-      <div style={{
-        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0,
-        background: 'linear-gradient(180deg, #E8F5E9 0%, #FFF8E7 100%)',
-      }} />
+      {/* Game-like gradient background */}
+      <GameBackground color1="#1a5276" color2="#2980b9" color3="#48b8a0" />
       <FloatingParticles />
 
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '12px 16px', position: 'relative', zIndex: 1, flexShrink: 0,
       }}>
-        <IconButton onClick={onBack} color="#ccc">✕</IconButton>
-        <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Rubik', sans-serif", color: '#2D3436' }}>מרכז הלימוד</div>
-        <div style={{ width: 44 }} />
+        <IconButton onClick={onBack} color="#5D9CEC">✕</IconButton>
+        <div style={{
+          fontSize: 22, fontWeight: 800, fontFamily: "'Rubik', sans-serif", color: 'white',
+          textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+        }}>מרכז הלימוד</div>
+        <div style={{ width: 50 }} />
       </div>
 
       <div style={{
@@ -2174,11 +2408,13 @@ function LearnHubScreen({ onSelect, speak, progress, onBack }) {
         justifyContent: 'center', padding: '20px', position: 'relative', zIndex: 1, gap: 16,
       }}>
         <img src={ASSETS.images.mascotHappy} alt="" style={{
-          width: 100, height: 100, objectFit: 'contain', animation: 'float 3s ease infinite',
+          width: 110, height: 110, objectFit: 'contain', animation: 'float 3s ease infinite',
+          filter: 'drop-shadow(0 8px 15px rgba(0,0,0,0.3))',
         }} />
         <div style={{
-          fontSize: 24, fontWeight: 700, color: '#2D3436', fontFamily: "'Rubik', sans-serif",
+          fontSize: 26, fontWeight: 800, color: 'white', fontFamily: "'Rubik', sans-serif",
           marginBottom: 10, textAlign: 'center',
+          textShadow: '0 3px 6px rgba(0,0,0,0.3)',
         }}>
           מה תרצה ללמוד היום? 📚
         </div>
@@ -2188,39 +2424,67 @@ function LearnHubScreen({ onSelect, speak, progress, onBack }) {
             key={opt.id}
             onClick={() => { playSound('click'); speak(opt.label); setTimeout(() => onSelect(opt.id), 300); }}
             style={{
-              width: '100%', maxWidth: 320, display: 'flex', alignItems: 'center', gap: 14,
-              padding: '18px 22px',
-              background: `linear-gradient(135deg, ${opt.color}15, ${opt.color}08)`,
-              borderRadius: 22,
-              border: `2px solid ${opt.color}33`,
-              boxShadow: `0 6px 20px ${opt.color}15`,
-              cursor: 'pointer', transition: 'transform 0.2s',
+              width: '100%', maxWidth: 340, display: 'flex', alignItems: 'center', gap: 14,
+              padding: '16px 20px',
+              background: `linear-gradient(180deg, ${opt.color} 0%, ${opt.bgColor} 100%)`,
+              borderRadius: 20,
+              border: '3px solid rgba(255,255,255,0.3)',
+              boxShadow: `
+                0 6px 0 ${opt.bgColor}99,
+                0 8px 20px rgba(0,0,0,0.25),
+                inset 0 2px 0 rgba(255,255,255,0.3)
+              `,
+              cursor: 'pointer',
+              transition: 'transform 0.1s, box-shadow 0.1s',
               animation: `fadeInUp 0.4s ease forwards`,
               animationDelay: `${i * 0.1}s`, opacity: 0,
+              position: 'relative',
+              overflow: 'hidden',
             }}
           >
+            {/* Shine effect */}
             <div style={{
-              width: 60, height: 60, borderRadius: 18,
-              background: 'white', display: 'flex',
-              alignItems: 'center', justifyContent: 'center',
-              fontSize: 32, flexShrink: 0,
-              boxShadow: `0 4px 14px ${opt.color}20`,
+              position: 'absolute', top: 0, left: '-100%', width: '50%', height: '100%',
+              background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent)',
+              animation: 'shimmer 3s ease infinite',
+              animationDelay: `${i * 0.4}s`,
+            }} />
+            <div style={{
+              width: 56, height: 56, borderRadius: 16,
+              background: 'rgba(255,255,255,0.25)',
+              backdropFilter: 'blur(5px)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 30, flexShrink: 0,
+              boxShadow: 'inset 0 2px 0 rgba(255,255,255,0.3), inset 0 -2px 0 rgba(0,0,0,0.1)',
+              border: '2px solid rgba(255,255,255,0.2)',
             }}>
               {opt.icon}
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 20, fontWeight: 700, color: '#2D3436', fontFamily: "'Rubik', sans-serif" }}>{opt.label}</div>
-              <div style={{ fontSize: 13, color: '#888', fontFamily: "'Rubik', sans-serif", marginTop: 2 }}>{opt.desc}</div>
+              <div style={{
+                fontSize: 20, fontWeight: 700, color: 'white', fontFamily: "'Rubik', sans-serif",
+                textShadow: '0 1px 3px rgba(0,0,0,0.3)',
+              }}>{opt.label}</div>
+              <div style={{
+                fontSize: 13, color: 'rgba(255,255,255,0.85)', fontFamily: "'Rubik', sans-serif", marginTop: 2,
+                textShadow: '0 1px 2px rgba(0,0,0,0.2)',
+              }}>{opt.desc}</div>
             </div>
             {opt.progress && (
               <div style={{
-                background: opt.color, color: 'white', padding: '4px 10px',
-                borderRadius: 12, fontSize: 12, fontWeight: 700, fontFamily: "'Rubik', sans-serif",
+                background: 'rgba(255,255,255,0.25)',
+                color: 'white', padding: '5px 12px',
+                borderRadius: 12, fontSize: 13, fontWeight: 700, fontFamily: "'Rubik', sans-serif",
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2)',
+                textShadow: '0 1px 2px rgba(0,0,0,0.3)',
               }}>
                 {opt.progress}
               </div>
             )}
-            <span style={{ fontSize: 18, color: '#ccc' }}>❮</span>
+            <span style={{
+              fontSize: 20, color: 'rgba(255,255,255,0.6)',
+              textShadow: '0 1px 2px rgba(0,0,0,0.2)',
+            }}>❮</span>
           </div>
         ))}
       </div>
@@ -2232,10 +2496,10 @@ function AchievementsScreen({ progress, speak, onBack }) {
   useEffect(() => { speak(`יש לך ${progress.stars} כוכבים! רמה ${progress.level}!`); }, [speak, progress.stars, progress.level]);
 
   const milestones = [
-    { stars: 10, label: 'כוכב עולה', icon: '⭐', unlocked: progress.stars >= 10 },
-    { stars: 30, label: 'חוקר אותיות', icon: '🔤', unlocked: progress.stars >= 30 },
-    { stars: 50, label: 'גיבור הקריאה', icon: '🦸', unlocked: progress.stars >= 50 },
-    { stars: 100, label: 'אלוף הא-ב', icon: '🏆', unlocked: progress.stars >= 100 },
+    { stars: 10, label: 'כוכב עולה', icon: '⭐', color: '#FFD700', bgColor: '#FFA000', unlocked: progress.stars >= 10 },
+    { stars: 30, label: 'חוקר אותיות', icon: '🔤', color: '#4ECDC4', bgColor: '#26a69a', unlocked: progress.stars >= 30 },
+    { stars: 50, label: 'גיבור הקריאה', icon: '🦸', color: '#9B59B6', bgColor: '#7B1FA2', unlocked: progress.stars >= 50 },
+    { stars: 100, label: 'אלוף הא-ב', icon: '🏆', color: '#FF6B6B', bgColor: '#e53935', unlocked: progress.stars >= 100 },
   ];
 
   return (
@@ -2243,19 +2507,20 @@ function AchievementsScreen({ progress, speak, onBack }) {
       position: 'absolute', top: 0, left: 0, right: 0, bottom: 70,
       display: 'flex', flexDirection: 'column', zIndex: 1, overflow: 'auto',
     }}>
-      <div style={{
-        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0,
-        background: 'linear-gradient(180deg, #FFF8E7 0%, #FFFDE7 100%)',
-      }} />
+      {/* Game-like gradient background */}
+      <GameBackground color1="#1a237e" color2="#303f9f" color3="#7c4dff" />
       <FloatingParticles />
 
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '12px 16px', position: 'relative', zIndex: 1, flexShrink: 0,
       }}>
-        <IconButton onClick={onBack} color="#ccc">✕</IconButton>
-        <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Rubik', sans-serif", color: '#2D3436' }}>ההישגים שלי</div>
-        <div style={{ width: 44 }} />
+        <IconButton onClick={onBack} color="#5D9CEC">✕</IconButton>
+        <div style={{
+          fontSize: 22, fontWeight: 800, fontFamily: "'Rubik', sans-serif", color: 'white',
+          textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+        }}>ההישגים שלי 🏆</div>
+        <div style={{ width: 50 }} />
       </div>
 
       <div style={{
@@ -2264,90 +2529,153 @@ function AchievementsScreen({ progress, speak, onBack }) {
         width: '100%', maxWidth: 420, margin: '0 auto',
       }}>
         <img src={ASSETS.images.mascotCelebrate} alt="" style={{
-          width: 90, height: 90, objectFit: 'contain', animation: 'float 3s ease infinite',
+          width: 100, height: 100, objectFit: 'contain', animation: 'float 3s ease infinite',
+          filter: 'drop-shadow(0 8px 15px rgba(0,0,0,0.3))',
         }} />
         <LevelBadge level={progress.level} />
 
-        {/* Stars */}
+        {/* Stars - Game style card */}
         <div style={{
-          width: '100%', background: 'linear-gradient(135deg, #FFD93D, #F9A825)',
-          borderRadius: 22, padding: 18, textAlign: 'center', color: 'white',
-          boxShadow: '0 6px 25px rgba(249,168,37,0.3)', animation: 'popIn 0.4s ease',
+          width: '100%',
+          background: 'linear-gradient(180deg, #FFD700 0%, #FFA000 100%)',
+          borderRadius: 20, padding: 20, textAlign: 'center', color: 'white',
+          boxShadow: `
+            0 6px 0 #E69100,
+            0 10px 30px rgba(255,160,0,0.4),
+            inset 0 2px 0 rgba(255,255,255,0.4)
+          `,
+          border: '3px solid rgba(255,255,255,0.3)',
+          animation: 'popIn 0.4s ease',
+          position: 'relative',
+          overflow: 'hidden',
         }}>
-          <div style={{ fontSize: 42, fontWeight: 700, fontFamily: "'Rubik', sans-serif" }}>⭐ {progress.stars}</div>
-          <div style={{ fontSize: 15, fontFamily: "'Rubik', sans-serif", opacity: 0.9 }}>כוכבים</div>
+          <div style={{
+            position: 'absolute', top: 0, left: '-100%', width: '50%', height: '100%',
+            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+            animation: 'shimmer 3s ease infinite',
+          }} />
+          <div style={{
+            fontSize: 48, fontWeight: 800, fontFamily: "'Rubik', sans-serif",
+            textShadow: '0 3px 6px rgba(0,0,0,0.3)',
+          }}>⭐ {progress.stars}</div>
+          <div style={{
+            fontSize: 16, fontFamily: "'Rubik', sans-serif",
+            opacity: 0.95, textShadow: '0 1px 3px rgba(0,0,0,0.2)',
+          }}>כוכבים</div>
         </div>
 
-        {/* Milestones */}
+        {/* Milestones - Game style card */}
         <div style={{
-          width: '100%', background: 'white', borderRadius: 20, padding: 16,
-          boxShadow: '0 2px 12px rgba(0,0,0,0.05)',
+          width: '100%',
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%)',
+          backdropFilter: 'blur(10px)',
+          borderRadius: 20, padding: 18,
+          boxShadow: '0 6px 0 rgba(0,0,0,0.1), 0 10px 30px rgba(0,0,0,0.15), inset 0 2px 0 rgba(255,255,255,1)',
+          border: '3px solid rgba(255,255,255,0.5)',
         }}>
-          <div style={{ fontWeight: 700, marginBottom: 10, fontSize: 15, fontFamily: "'Rubik', sans-serif", color: '#2D3436' }}>
-            תגים:
+          <div style={{
+            fontWeight: 800, marginBottom: 12, fontSize: 16, fontFamily: "'Rubik', sans-serif", color: '#2D3436',
+          }}>
+            תגים 🎖️
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
             {milestones.map((m, i) => (
               <div key={i} style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '6px 12px', borderRadius: 12,
-                background: m.unlocked ? '#FFF3E0' : '#f5f5f5',
-                opacity: m.unlocked ? 1 : 0.4,
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '8px 14px', borderRadius: 14,
+                background: m.unlocked
+                  ? `linear-gradient(180deg, ${m.color} 0%, ${m.bgColor} 100%)`
+                  : 'linear-gradient(180deg, #e0e0e0 0%, #bdbdbd 100%)',
+                opacity: m.unlocked ? 1 : 0.5,
                 fontSize: 13, fontFamily: "'Rubik', sans-serif",
-                animation: m.unlocked ? 'glowPulse 2s ease infinite' : 'none',
+                boxShadow: m.unlocked
+                  ? `0 3px 0 ${m.bgColor}99, 0 4px 12px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.3)`
+                  : '0 2px 0 #9e9e9e, inset 0 1px 0 rgba(255,255,255,0.3)',
+                border: '2px solid rgba(255,255,255,0.3)',
+                animation: m.unlocked ? 'pulse 2s ease infinite' : 'none',
               }}>
-                <span style={{ fontSize: 18 }}>{m.icon}</span>
-                <span style={{ fontWeight: 600, color: m.unlocked ? '#FF6B00' : '#aaa' }}>{m.label}</span>
+                <span style={{ fontSize: 20, filter: m.unlocked ? 'drop-shadow(0 2px 3px rgba(0,0,0,0.2))' : 'none' }}>{m.icon}</span>
+                <span style={{
+                  fontWeight: 700, color: 'white',
+                  textShadow: m.unlocked ? '0 1px 2px rgba(0,0,0,0.3)' : 'none',
+                }}>{m.label}</span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Letters */}
+        {/* Letters - Game style card */}
         <div style={{
-          width: '100%', background: 'white', borderRadius: 20, padding: 16,
-          boxShadow: '0 2px 12px rgba(0,0,0,0.05)',
+          width: '100%',
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%)',
+          backdropFilter: 'blur(10px)',
+          borderRadius: 20, padding: 18,
+          boxShadow: '0 6px 0 rgba(0,0,0,0.1), 0 10px 30px rgba(0,0,0,0.15), inset 0 2px 0 rgba(255,255,255,1)',
+          border: '3px solid rgba(255,255,255,0.5)',
         }}>
-          <div style={{ fontWeight: 700, marginBottom: 10, fontSize: 15, fontFamily: "'Rubik', sans-serif", color: '#2D3436' }}>
-            אותיות שלמדתי ({progress.learned.length} / {LETTERS.length}):
+          <div style={{
+            fontWeight: 800, marginBottom: 12, fontSize: 16, fontFamily: "'Rubik', sans-serif", color: '#2D3436',
+          }}>
+            אותיות שלמדתי ({progress.learned.length} / {LETTERS.length}) 📚
           </div>
           <ProgressBar current={progress.learned.length} total={LETTERS.length} color="#4ECDC4" />
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, justifyContent: 'center', marginTop: 12 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginTop: 14 }}>
             {LETTERS.map((l, i) => {
               const learned = progress.learned.includes(l.letter);
               return (
                 <span key={i} style={{
-                  width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 17, fontWeight: 700, borderRadius: 10,
-                  background: learned ? l.color : '#f0f0f0',
-                  color: learned ? 'white' : '#ccc',
-                  boxShadow: learned ? `0 2px 8px ${l.color}44` : 'none',
+                  width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 18, fontWeight: 700, borderRadius: 10,
+                  background: learned
+                    ? `linear-gradient(180deg, ${l.color} 0%, ${l.color}cc 100%)`
+                    : 'linear-gradient(180deg, #e0e0e0 0%, #bdbdbd 100%)',
+                  color: 'white',
+                  boxShadow: learned
+                    ? `0 3px 0 ${l.color}88, 0 4px 10px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.3)`
+                    : '0 2px 0 #9e9e9e',
+                  border: '2px solid rgba(255,255,255,0.3)',
                   transition: 'all 0.3s', fontFamily: "'Rubik', sans-serif",
+                  textShadow: learned ? '0 1px 2px rgba(0,0,0,0.3)' : 'none',
                 }}>{l.letter}</span>
               );
             })}
           </div>
         </div>
 
-        {/* Stats */}
+        {/* Stats - Game style card */}
         <div style={{
-          width: '100%', background: 'white', borderRadius: 20, padding: 16,
-          boxShadow: '0 2px 12px rgba(0,0,0,0.05)',
+          width: '100%',
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%)',
+          backdropFilter: 'blur(10px)',
+          borderRadius: 20, padding: 18,
+          boxShadow: '0 6px 0 rgba(0,0,0,0.1), 0 10px 30px rgba(0,0,0,0.15), inset 0 2px 0 rgba(255,255,255,1)',
+          border: '3px solid rgba(255,255,255,0.5)',
         }}>
-          <div style={{ fontWeight: 700, marginBottom: 10, fontSize: 15, fontFamily: "'Rubik', sans-serif", color: '#2D3436' }}>סטטיסטיקות:</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{
+            fontWeight: 800, marginBottom: 12, fontSize: 16, fontFamily: "'Rubik', sans-serif", color: '#2D3436',
+          }}>סטטיסטיקות 📊</div>
+          <div style={{ display: 'flex', gap: 10 }}>
             {[
-              { icon: '🎮', label: 'משחקים', val: progress.games },
-              { icon: '🔥', label: 'שיא רצף', val: progress.bestStreak },
-              { icon: '📊', label: 'רמה', val: progress.level },
+              { icon: '🎮', label: 'משחקים', val: progress.games, color: '#3498DB', bgColor: '#1976D2' },
+              { icon: '🔥', label: 'שיא רצף', val: progress.bestStreak, color: '#FF6B6B', bgColor: '#e53935' },
+              { icon: '📊', label: 'רמה', val: progress.level, color: '#9B59B6', bgColor: '#7B1FA2' },
             ].map((s, i) => (
               <div key={i} style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                fontSize: 15, fontFamily: "'Rubik', sans-serif", color: '#555',
+                flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+                background: `linear-gradient(180deg, ${s.color} 0%, ${s.bgColor} 100%)`,
+                padding: '10px 8px', borderRadius: 14,
+                boxShadow: `0 3px 0 ${s.bgColor}99, 0 4px 12px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.3)`,
+                border: '2px solid rgba(255,255,255,0.3)',
               }}>
-                <span>{s.icon}</span>
-                <span>{s.label}:</span>
-                <span style={{ fontWeight: 700, color: '#2D3436' }}>{s.val}</span>
+                <span style={{ fontSize: 22, filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.2))' }}>{s.icon}</span>
+                <span style={{
+                  fontSize: 20, fontWeight: 800, color: 'white', fontFamily: "'Rubik', sans-serif",
+                  textShadow: '0 2px 3px rgba(0,0,0,0.3)',
+                }}>{s.val}</span>
+                <span style={{
+                  fontSize: 10, color: 'rgba(255,255,255,0.9)', fontFamily: "'Rubik', sans-serif",
+                  textShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                }}>{s.label}</span>
               </div>
             ))}
           </div>
