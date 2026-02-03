@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
 /*
- * אפליקציית לימוד קריאה לילדים - גרסה 12.0
- * בורר אותיות + מבחן מיני במסך לימוד
+ * אפליקציית לימוד קריאה לילדים - גרסה 13.0
+ * כולל: אותיות, ניקוד, צירופים ומשחקים
  */
 
 // ==================== ASSETS ====================
@@ -138,6 +138,75 @@ const CONFUSABLES = {
   'ל': ['כ'],
 };
 
+// ==================== NIKUD (VOWELS) DATA ====================
+const NIKUD = [
+  { symbol: 'ָ', name: 'קָמָץ', sound: 'אָ', soundName: 'א', color: '#FF6B6B', example: 'אָב', exampleMeaning: 'אבא' },
+  { symbol: 'ַ', name: 'פַּתָח', sound: 'אַ', soundName: 'א', color: '#4ECDC4', example: 'אַף', exampleMeaning: 'אף' },
+  { symbol: 'ֵ', name: 'צֵירֵי', sound: 'אֵ', soundName: 'ה', color: '#9B59B6', example: 'אֵם', exampleMeaning: 'אמא' },
+  { symbol: 'ֶ', name: 'סֶגּוֹל', sound: 'אֶ', soundName: 'ע', color: '#3498DB', example: 'מֶלֶך', exampleMeaning: 'מלך' },
+  { symbol: 'ִ', name: 'חִירִיק', sound: 'אִ', soundName: 'י', color: '#2ECC71', example: 'דִי', exampleMeaning: 'מספיק' },
+  { symbol: 'ֹ', name: 'חוֹלָם', sound: 'אֹ', soundName: 'ו', color: '#E67E22', example: 'לֹא', exampleMeaning: 'לא' },
+  { symbol: 'ֻ', name: 'קֻבּוּץ', sound: 'אֻ', soundName: 'ו', color: '#E74C3C', example: 'קֻם', exampleMeaning: 'קום' },
+  { symbol: 'וּ', name: 'שׁוּרוּק', sound: 'וּ', soundName: 'ו', color: '#8E44AD', example: 'שׁוּם', exampleMeaning: 'שום' },
+];
+
+// Simplified nikud for initial learning (the 5 main vowels)
+const NIKUD_BASIC = [
+  { symbol: 'ָ', name: 'קָמָץ', sound: 'אָ', vowel: 'א', color: '#FF6B6B' },
+  { symbol: 'ִ', name: 'חִירִיק', sound: 'אִ', vowel: 'י', color: '#2ECC71' },
+  { symbol: 'ֵ', name: 'צֵירֵי', sound: 'אֵ', vowel: 'ה', color: '#9B59B6' },
+  { symbol: 'ֹ', name: 'חוֹלָם', sound: 'אֹ', vowel: 'ו', color: '#E67E22' },
+  { symbol: 'וּ', name: 'שׁוּרוּק', sound: 'וּ', vowel: 'ו', color: '#8E44AD' },
+];
+
+// ==================== SYLLABLES (TZERUFIM) DATA ====================
+// Generate syllables for each letter + nikud combination
+const CONSONANTS_FOR_SYLLABLES = ['ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט', 'י', 'כ', 'ל', 'מ', 'נ', 'ס', 'פ', 'צ', 'ק', 'ר', 'ש', 'ת'];
+
+function generateSyllables() {
+  const syllables = [];
+  const nikudList = [
+    { symbol: 'ָ', sound: 'א', name: 'קמץ', color: '#FF6B6B' },
+    { symbol: 'ַ', sound: 'א', name: 'פתח', color: '#4ECDC4' },
+    { symbol: 'ִ', sound: 'י', name: 'חיריק', color: '#2ECC71' },
+    { symbol: 'ֵ', sound: 'ה', name: 'צירי', color: '#9B59B6' },
+    { symbol: 'ֶ', sound: 'ע', name: 'סגול', color: '#3498DB' },
+    { symbol: 'ֹ', sound: 'ו', name: 'חולם', color: '#E67E22' },
+    { symbol: 'ֻ', sound: 'ו', name: 'קובוץ', color: '#E74C3C' },
+  ];
+
+  CONSONANTS_FOR_SYLLABLES.forEach(letter => {
+    const letterData = LETTERS.find(l => l.letter === letter);
+    const baseColor = letterData?.color || '#888';
+    nikudList.forEach(n => {
+      const syllable = letter + n.symbol;
+      const sound = letter + n.sound;
+      syllables.push({
+        syllable,
+        letter,
+        nikud: n.symbol,
+        nikudName: n.name,
+        sound,
+        color: baseColor,
+        nikudColor: n.color,
+      });
+    });
+  });
+  return syllables;
+}
+
+const SYLLABLES = generateSyllables();
+
+// Get syllables for a specific letter
+function getSyllablesForLetter(letter) {
+  return SYLLABLES.filter(s => s.letter === letter);
+}
+
+// Get syllables for a specific nikud
+function getSyllablesForNikud(nikudSymbol) {
+  return SYLLABLES.filter(s => s.nikud === nikudSymbol);
+}
+
 // Pick smart distractors: prefer confusable letters, then random
 function pickDistractors(target, count) {
   const confusable = (CONFUSABLES[target.letter] || [])
@@ -148,6 +217,32 @@ function pickDistractors(target, count) {
     .sort(() => Math.random() - 0.5);
   const pool = [...confusable, ...others];
   return pool.slice(0, count);
+}
+
+// Pick syllable distractors - same letter different nikud, or same nikud different letter
+function pickSyllableDistractors(target, count, mode = 'mixed') {
+  let pool = [];
+  if (mode === 'sameNikud') {
+    // Same nikud, different letters
+    pool = SYLLABLES.filter(s => s.nikud === target.nikud && s.letter !== target.letter);
+  } else if (mode === 'sameLetter') {
+    // Same letter, different nikud
+    pool = SYLLABLES.filter(s => s.letter === target.letter && s.nikud !== target.nikud);
+  } else {
+    // Mixed - prefer same letter (harder)
+    const sameLetter = SYLLABLES.filter(s => s.letter === target.letter && s.nikud !== target.nikud);
+    const sameNikud = SYLLABLES.filter(s => s.nikud === target.nikud && s.letter !== target.letter);
+    const others = SYLLABLES.filter(s => s.letter !== target.letter && s.nikud !== target.nikud);
+    pool = [...sameLetter, ...sameNikud, ...others];
+  }
+  return pool.sort(() => Math.random() - 0.5).slice(0, count);
+}
+
+// Pick nikud distractors
+function pickNikudDistractors(target, count) {
+  return NIKUD_BASIC.filter(n => n.symbol !== target.symbol)
+    .sort(() => Math.random() - 0.5)
+    .slice(0, count);
 }
 
 const ENCOURAGEMENTS = [
@@ -509,10 +604,17 @@ function HomeScreen({ onActivity, speak, progress }) {
   useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
 
   const activities = [
-    { id: 'learn', icon: '📖', label: 'לימוד אותיות', desc: 'למד את האותיות, הצלילים והמילים', color: '#4ECDC4', gradient: 'linear-gradient(135deg, #E0F7FA, #B2EBF2)' },
-    { id: 'find', icon: '🔍', label: 'מצא את האות', desc: 'שמע את שם האות ומצא אותה!', color: '#FF6B6B', gradient: 'linear-gradient(135deg, #FFEBEE, #FFCDD2)' },
-    { id: 'match', icon: '🎯', label: 'התאם לתמונה', desc: 'ראה תמונה ובחר את האות הנכונה', color: '#9B59B6', gradient: 'linear-gradient(135deg, #F3E5F5, #E1BEE7)' },
-    { id: 'sound', icon: '🎵', label: 'זהה את הצליל', desc: 'שמע צליל ובחר איזו אות עושה אותו', color: '#FF9800', gradient: 'linear-gradient(135deg, #FFF3E0, #FFE0B2)' },
+    // Letters section
+    { id: 'learn', icon: '📖', label: 'לימוד אותיות', desc: 'למד את האותיות, הצלילים והמילים', color: '#4ECDC4', gradient: 'linear-gradient(135deg, #E0F7FA, #B2EBF2)', section: 'אותיות' },
+    // Nikud section
+    { id: 'nikud', icon: '🔤', label: 'לימוד ניקוד', desc: 'למד את התנועות - קמץ, פתח, חיריק...', color: '#9B59B6', gradient: 'linear-gradient(135deg, #F3E5F5, #E1BEE7)', section: 'ניקוד' },
+    // Syllables section
+    { id: 'syllables', icon: '🧩', label: 'לימוד צירופים', desc: 'צרף אותיות עם ניקוד - בָּ, מִ, שֵׁ...', color: '#E67E22', gradient: 'linear-gradient(135deg, #FFF3E0, #FFE0B2)', section: 'צירופים' },
+    // Games section
+    { id: 'find', icon: '🔍', label: 'מצא את האות', desc: 'שמע את הצליל ומצא את האות!', color: '#FF6B6B', gradient: 'linear-gradient(135deg, #FFEBEE, #FFCDD2)', section: 'משחקים' },
+    { id: 'match', icon: '🎯', label: 'התאם לתמונה', desc: 'ראה תמונה ובחר את האות הנכונה', color: '#2ECC71', gradient: 'linear-gradient(135deg, #E8F5E9, #C8E6C9)', section: 'משחקים' },
+    { id: 'sound', icon: '🎵', label: 'זהה את הצליל', desc: 'שמע צליל ובחר איזו אות עושה אותו', color: '#FF9800', gradient: 'linear-gradient(135deg, #FFF8E1, #FFECB3)', section: 'משחקים' },
+    { id: 'syllableGame', icon: '🎮', label: 'משחק צירופים', desc: 'שמע צירוף ומצא אותו!', color: '#3498DB', gradient: 'linear-gradient(135deg, #E3F2FD, #BBDEFB)', section: 'משחקים' },
   ];
 
   return (
@@ -892,6 +994,508 @@ function LearnScreen({ speak, progress, addLetter, addStars, onBack }) {
   );
 }
 
+// ==================== NIKUD LEARNING SCREEN ====================
+function NikudLearnScreen({ speak, progress, addStars, onBack }) {
+  const [idx, setIdx] = useState(0);
+  const [quizMode, setQuizMode] = useState(false);
+  const [quizOptions, setQuizOptions] = useState([]);
+  const [quizSelected, setQuizSelected] = useState(null);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [learnedNikud, setLearnedNikud] = useState(() => {
+    try {
+      const saved = localStorage.getItem('hebrew_app_nikud_learned');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+  const playSound = useSound();
+  const safeTimeout = useSafeTimeouts();
+
+  const nikud = NIKUD_BASIC[idx];
+
+  useEffect(() => {
+    try { localStorage.setItem('hebrew_app_nikud_learned', JSON.stringify(learnedNikud)); } catch {}
+  }, [learnedNikud]);
+
+  const speakNow = useCallback(() => {
+    speak(`זה ${nikud.name}. ${nikud.name} נשמע ${nikud.sound}`);
+  }, [speak, nikud]);
+
+  useEffect(() => {
+    if (!quizMode) {
+      const t = setTimeout(speakNow, 500);
+      return () => clearTimeout(t);
+    }
+  }, [idx, speakNow, quizMode]);
+
+  const goNext = () => { setIdx(i => (i + 1) % NIKUD_BASIC.length); setQuizMode(false); };
+  const goPrev = () => { setIdx(i => (i - 1 + NIKUD_BASIC.length) % NIKUD_BASIC.length); setQuizMode(false); };
+
+  const startQuiz = () => {
+    playSound('click');
+    const distractors = pickNikudDistractors(nikud, 2);
+    const opts = [nikud, ...distractors].sort(() => Math.random() - 0.5);
+    setQuizOptions(opts);
+    setQuizSelected(null);
+    setQuizMode(true);
+    safeTimeout(() => speak(nikud.sound), 300);
+  };
+
+  const handleQuizPick = (opt) => {
+    if (quizSelected) return;
+    playSound('click');
+    setQuizSelected(opt.symbol);
+    if (opt.symbol === nikud.symbol) {
+      if (!learnedNikud.includes(nikud.symbol)) {
+        setLearnedNikud(prev => [...prev, nikud.symbol]);
+      }
+      addStars(3);
+      setShowFeedback(true);
+      setShowConfetti(true);
+      safeTimeout(() => {
+        setShowFeedback(false);
+        setShowConfetti(false);
+        setQuizMode(false);
+        setQuizSelected(null);
+        setIdx(i => (i + 1) % NIKUD_BASIC.length);
+      }, 1800);
+    } else {
+      safeTimeout(() => {
+        setQuizSelected(null);
+        speak(`לא, זה ${opt.name}. נסה שוב! ${nikud.sound}`);
+      }, 1200);
+    }
+  };
+
+  return (
+    <div style={{
+      position: 'absolute', top: 0, left: 0, right: 0, bottom: 70,
+      display: 'flex', flexDirection: 'column', zIndex: 1,
+    }}>
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0,
+        background: `linear-gradient(180deg, ${nikud.color}15 0%, #FFF8E7 100%)`,
+      }} />
+      <FloatingParticles />
+      <ConfettiEffect active={showConfetti} />
+      {showFeedback && <Feedback type="success" />}
+
+      {/* Header */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '10px 16px', position: 'relative', zIndex: 1, flexShrink: 0,
+      }}>
+        <IconButton onClick={onBack} color="#ccc">✕</IconButton>
+        <div style={{
+          background: 'white', padding: '5px 14px', borderRadius: 20,
+          fontSize: 14, fontWeight: 600, color: '#555', fontFamily: "'Rubik', sans-serif",
+          boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+        }}>
+          ניקוד {idx + 1} מתוך {NIKUD_BASIC.length}
+        </div>
+        <IconButton onClick={speakNow} color="#2196F3">🔊</IconButton>
+      </div>
+
+      {/* Nikud indicators */}
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 8, padding: '4px 20px', position: 'relative', zIndex: 1 }}>
+        {NIKUD_BASIC.map((n, i) => {
+          const learned = learnedNikud.includes(n.symbol);
+          const isCurrent = i === idx;
+          return (
+            <button key={i} onClick={() => { setIdx(i); setQuizMode(false); }} style={{
+              width: 32, height: 32, borderRadius: 10, border: 'none',
+              background: isCurrent ? n.color : learned ? `${n.color}33` : '#eee',
+              color: isCurrent ? 'white' : learned ? n.color : '#bbb',
+              fontSize: 18, fontWeight: 700, cursor: 'pointer',
+              boxShadow: isCurrent ? `0 3px 10px ${n.color}55` : 'none',
+              transform: isCurrent ? 'scale(1.15)' : 'scale(1)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'all 0.2s',
+            }}>א{n.symbol}</button>
+          );
+        })}
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 20px', position: 'relative', zIndex: 1 }}>
+        <ProgressBar current={idx + 1} total={NIKUD_BASIC.length} color={nikud.color} />
+      </div>
+
+      {/* Content */}
+      <div style={{
+        flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+        justifyContent: 'center', padding: '8px 20px', position: 'relative', zIndex: 1, minHeight: 0,
+      }}>
+        {quizMode ? (
+          <>
+            <div style={{
+              fontSize: 18, fontWeight: 700, color: '#2D3436', fontFamily: "'Rubik', sans-serif",
+              marginBottom: 14, textAlign: 'center',
+            }}>
+              איזה ניקוד נשמע ככה? 🎯
+            </div>
+            <div style={{
+              width: 70, height: 70, borderRadius: '50%', margin: '0 auto 16px',
+              background: `linear-gradient(145deg, ${nikud.color}, ${nikud.color}bb)`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 30, cursor: 'pointer',
+              boxShadow: `0 6px 20px ${nikud.color}44`,
+              animation: 'pulse 2s ease infinite',
+            }} onClick={() => speak(nikud.sound)}>
+              🔊
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, width: '100%', maxWidth: 280 }}>
+              {quizOptions.map((opt, i) => {
+                const isSelected = quizSelected === opt.symbol;
+                const isCorrect = opt.symbol === nikud.symbol;
+                let bg = 'white';
+                if (isSelected) bg = isCorrect ? '#C8E6C9' : '#FFCDD2';
+                return (
+                  <div key={i} onClick={() => handleQuizPick(opt)} style={{
+                    aspectRatio: '1', display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center',
+                    fontSize: 36, fontWeight: 700, color: opt.color,
+                    background: isSelected ? bg : 'linear-gradient(145deg, white, #fafafa)',
+                    borderRadius: 20,
+                    border: `3px solid ${isSelected ? (isCorrect ? '#4CAF50' : '#F44336') : opt.color + '66'}`,
+                    boxShadow: isSelected
+                      ? (isCorrect ? '0 0 20px rgba(76,175,80,0.3)' : '0 0 20px rgba(244,67,54,0.3)')
+                      : `0 4px 15px ${opt.color}18`,
+                    cursor: quizSelected ? 'default' : 'pointer',
+                    transition: 'all 0.2s', fontFamily: "'Rubik', sans-serif",
+                  }}>
+                    <span>א{opt.symbol}</span>
+                    <span style={{ fontSize: 11, color: '#888', marginTop: 2 }}>{opt.name}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{
+              width: 140, height: 140, borderRadius: '50%',
+              background: 'radial-gradient(circle at 30% 30%, white 0%, #fafafa 100%)',
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center',
+              boxShadow: `0 10px 40px ${nikud.color}40, 0 0 0 4px ${nikud.color}, 0 0 0 8px ${nikud.color}22`,
+              marginBottom: 16, animation: 'popIn 0.4s ease',
+            }}>
+              <span style={{ fontSize: 70, fontWeight: 700, color: nikud.color, lineHeight: 1 }}>א{nikud.symbol}</span>
+            </div>
+
+            <div style={{
+              fontSize: 22, fontWeight: 700, color: '#2D3436', fontFamily: "'Rubik', sans-serif",
+              marginBottom: 8, animation: 'fadeInUp 0.4s ease 0.1s forwards', opacity: 0,
+            }}>
+              {nikud.name}
+            </div>
+
+            <div style={{
+              background: `${nikud.color}15`, padding: '8px 20px', borderRadius: 16,
+              marginBottom: 12, animation: 'fadeInUp 0.4s ease 0.2s forwards', opacity: 0,
+            }}>
+              <span style={{ fontSize: 18, color: nikud.color, fontWeight: 600, fontFamily: "'Rubik', sans-serif" }}>
+                🔈 נשמע: &quot;{nikud.sound}&quot;
+              </span>
+            </div>
+
+            {/* Example syllables */}
+            <div style={{
+              display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center',
+              background: 'rgba(255,255,255,0.9)', padding: '12px 20px', borderRadius: 18,
+              boxShadow: '0 4px 15px rgba(0,0,0,0.05)',
+              animation: 'fadeInUp 0.4s ease 0.3s forwards', opacity: 0,
+            }}>
+              {['ב', 'מ', 'ל', 'ש'].map((letter, i) => (
+                <div key={i} onClick={() => speak(letter + nikud.vowel)} style={{
+                  padding: '8px 14px', borderRadius: 12,
+                  background: `${nikud.color}15`, cursor: 'pointer',
+                  fontSize: 28, fontWeight: 700, color: nikud.color,
+                  fontFamily: "'Rubik', sans-serif",
+                }}>
+                  {letter}{nikud.symbol}
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Bottom Actions */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        gap: 10, padding: '8px 20px', position: 'relative', zIndex: 1, flexShrink: 0,
+      }}>
+        {quizMode ? (
+          <Button onClick={() => { setQuizMode(false); setQuizSelected(null); }} color="#BDBDBD" size="medium" icon="←">חזרה ללימוד</Button>
+        ) : (
+          <>
+            <Button onClick={goPrev} color="#BDBDBD" size="small" icon="→">הקודם</Button>
+            <Button onClick={startQuiz} color="#4CAF50" size="large" icon="❓">בחן אותי!</Button>
+            <Button onClick={goNext} color="#BDBDBD" size="small" icon="←">הבא</Button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ==================== SYLLABLES LEARNING SCREEN ====================
+function SyllablesLearnScreen({ speak, progress, addStars, onBack }) {
+  const [letterIdx, setLetterIdx] = useState(0);
+  const [nikudIdx, setNikudIdx] = useState(0);
+  const [quizMode, setQuizMode] = useState(false);
+  const [quizOptions, setQuizOptions] = useState([]);
+  const [quizSelected, setQuizSelected] = useState(null);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const playSound = useSound();
+  const safeTimeout = useSafeTimeouts();
+
+  const currentLetter = CONSONANTS_FOR_SYLLABLES[letterIdx];
+  const nikudList = [
+    { symbol: 'ָ', sound: 'א', name: 'קמץ', color: '#FF6B6B' },
+    { symbol: 'ַ', sound: 'א', name: 'פתח', color: '#4ECDC4' },
+    { symbol: 'ִ', sound: 'י', name: 'חיריק', color: '#2ECC71' },
+    { symbol: 'ֵ', sound: 'ה', name: 'צירי', color: '#9B59B6' },
+    { symbol: 'ֶ', sound: 'ע', name: 'סגול', color: '#3498DB' },
+    { symbol: 'ֹ', sound: 'ו', name: 'חולם', color: '#E67E22' },
+  ];
+  const currentNikud = nikudList[nikudIdx];
+  const syllable = currentLetter + currentNikud.symbol;
+  const syllableSound = currentLetter + currentNikud.sound;
+  const letterData = LETTERS.find(l => l.letter === currentLetter);
+  const letterColor = letterData?.color || '#888';
+
+  const speakNow = useCallback(() => {
+    speak(`${syllable}. ${currentLetter} עם ${currentNikud.name} זה ${syllableSound}`);
+  }, [speak, syllable, currentLetter, currentNikud.name, syllableSound]);
+
+  useEffect(() => {
+    if (!quizMode) {
+      const t = setTimeout(speakNow, 500);
+      return () => clearTimeout(t);
+    }
+  }, [letterIdx, nikudIdx, speakNow, quizMode]);
+
+  const nextNikud = () => {
+    if (nikudIdx < nikudList.length - 1) setNikudIdx(n => n + 1);
+    else { setNikudIdx(0); setLetterIdx(l => (l + 1) % CONSONANTS_FOR_SYLLABLES.length); }
+    setQuizMode(false);
+  };
+
+  const prevNikud = () => {
+    if (nikudIdx > 0) setNikudIdx(n => n - 1);
+    else if (letterIdx > 0) { setLetterIdx(l => l - 1); setNikudIdx(nikudList.length - 1); }
+    setQuizMode(false);
+  };
+
+  const startQuiz = () => {
+    playSound('click');
+    const target = SYLLABLES.find(s => s.syllable === syllable);
+    if (!target) return;
+    const distractors = pickSyllableDistractors(target, 2, 'sameLetter');
+    const opts = [target, ...distractors].sort(() => Math.random() - 0.5);
+    setQuizOptions(opts);
+    setQuizSelected(null);
+    setQuizMode(true);
+    safeTimeout(() => speak(syllableSound), 300);
+  };
+
+  const handleQuizPick = (opt) => {
+    if (quizSelected) return;
+    playSound('click');
+    setQuizSelected(opt.syllable);
+    if (opt.syllable === syllable) {
+      addStars(3);
+      setShowFeedback(true);
+      setShowConfetti(true);
+      safeTimeout(() => {
+        setShowFeedback(false);
+        setShowConfetti(false);
+        setQuizMode(false);
+        setQuizSelected(null);
+        nextNikud();
+      }, 1800);
+    } else {
+      safeTimeout(() => {
+        setQuizSelected(null);
+        speak(`לא, זה ${opt.sound}. נסה שוב! ${syllableSound}`);
+      }, 1200);
+    }
+  };
+
+  return (
+    <div style={{
+      position: 'absolute', top: 0, left: 0, right: 0, bottom: 70,
+      display: 'flex', flexDirection: 'column', zIndex: 1,
+    }}>
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0,
+        background: `linear-gradient(180deg, ${letterColor}15 0%, #FFF8E7 100%)`,
+      }} />
+      <FloatingParticles />
+      <ConfettiEffect active={showConfetti} />
+      {showFeedback && <Feedback type="success" />}
+
+      {/* Header */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '10px 16px', position: 'relative', zIndex: 1, flexShrink: 0,
+      }}>
+        <IconButton onClick={onBack} color="#ccc">✕</IconButton>
+        <div style={{
+          background: 'white', padding: '5px 14px', borderRadius: 20,
+          fontSize: 14, fontWeight: 600, color: '#555', fontFamily: "'Rubik', sans-serif",
+          boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+        }}>
+          אות {currentLetter} • ניקוד {nikudIdx + 1}/{nikudList.length}
+        </div>
+        <IconButton onClick={speakNow} color="#2196F3">🔊</IconButton>
+      </div>
+
+      {/* Letter selector */}
+      <div style={{
+        display: 'flex', gap: 4, padding: '4px 12px', overflowX: 'auto', overflowY: 'hidden',
+        position: 'relative', zIndex: 1, flexShrink: 0, scrollbarWidth: 'none',
+      }}>
+        {CONSONANTS_FOR_SYLLABLES.map((l, i) => {
+          const lData = LETTERS.find(x => x.letter === l);
+          const isCurrent = i === letterIdx;
+          return (
+            <button key={i} onClick={() => { setLetterIdx(i); setNikudIdx(0); setQuizMode(false); }} style={{
+              width: 30, height: 30, minWidth: 30, borderRadius: 8, border: 'none',
+              background: isCurrent ? lData?.color || '#888' : '#eee',
+              color: isCurrent ? 'white' : '#888',
+              fontSize: 14, fontWeight: 700, cursor: 'pointer',
+              boxShadow: isCurrent ? `0 2px 8px ${lData?.color || '#888'}55` : 'none',
+              transform: isCurrent ? 'scale(1.1)' : 'scale(1)',
+              transition: 'all 0.2s',
+            }}>{l}</button>
+          );
+        })}
+      </div>
+
+      {/* Nikud selector */}
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 6, padding: '6px 20px', position: 'relative', zIndex: 1 }}>
+        {nikudList.map((n, i) => {
+          const isCurrent = i === nikudIdx;
+          return (
+            <button key={i} onClick={() => { setNikudIdx(i); setQuizMode(false); }} style={{
+              padding: '4px 10px', borderRadius: 10, border: 'none',
+              background: isCurrent ? n.color : '#f0f0f0',
+              color: isCurrent ? 'white' : '#888',
+              fontSize: 16, fontWeight: 600, cursor: 'pointer',
+              boxShadow: isCurrent ? `0 2px 8px ${n.color}55` : 'none',
+              transition: 'all 0.2s', fontFamily: "'Rubik', sans-serif",
+            }}>{currentLetter}{n.symbol}</button>
+          );
+        })}
+      </div>
+
+      {/* Content */}
+      <div style={{
+        flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+        justifyContent: 'center', padding: '8px 20px', position: 'relative', zIndex: 1, minHeight: 0,
+      }}>
+        {quizMode ? (
+          <>
+            <div style={{
+              fontSize: 18, fontWeight: 700, color: '#2D3436', fontFamily: "'Rubik', sans-serif",
+              marginBottom: 14, textAlign: 'center',
+            }}>
+              איזה צירוף נשמע ככה? 🎯
+            </div>
+            <div style={{
+              width: 70, height: 70, borderRadius: '50%', margin: '0 auto 16px',
+              background: `linear-gradient(145deg, ${letterColor}, ${letterColor}bb)`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 30, cursor: 'pointer',
+              boxShadow: `0 6px 20px ${letterColor}44`,
+              animation: 'pulse 2s ease infinite',
+            }} onClick={() => speak(syllableSound)}>
+              🔊
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, width: '100%', maxWidth: 280 }}>
+              {quizOptions.map((opt, i) => {
+                const isSelected = quizSelected === opt.syllable;
+                const isCorrect = opt.syllable === syllable;
+                let bg = 'white';
+                if (isSelected) bg = isCorrect ? '#C8E6C9' : '#FFCDD2';
+                return (
+                  <div key={i} onClick={() => handleQuizPick(opt)} style={{
+                    aspectRatio: '1', display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center',
+                    fontSize: 38, fontWeight: 700, color: opt.color,
+                    background: isSelected ? bg : 'linear-gradient(145deg, white, #fafafa)',
+                    borderRadius: 20,
+                    border: `3px solid ${isSelected ? (isCorrect ? '#4CAF50' : '#F44336') : opt.color + '66'}`,
+                    boxShadow: isSelected
+                      ? (isCorrect ? '0 0 20px rgba(76,175,80,0.3)' : '0 0 20px rgba(244,67,54,0.3)')
+                      : `0 4px 15px ${opt.color}18`,
+                    cursor: quizSelected ? 'default' : 'pointer',
+                    transition: 'all 0.2s', fontFamily: "'Rubik', sans-serif",
+                  }}>
+                    <span>{opt.syllable}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{
+              width: 150, height: 150, borderRadius: '50%',
+              background: 'radial-gradient(circle at 30% 30%, white 0%, #fafafa 100%)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: `0 10px 40px ${letterColor}40, 0 0 0 4px ${letterColor}, 0 0 0 8px ${letterColor}22`,
+              marginBottom: 16, animation: 'popIn 0.4s ease',
+            }}>
+              <span style={{ fontSize: 80, fontWeight: 700, color: letterColor, lineHeight: 1 }}>{syllable}</span>
+            </div>
+
+            <div style={{
+              background: `${currentNikud.color}15`, padding: '8px 20px', borderRadius: 16,
+              marginBottom: 12, animation: 'fadeInUp 0.4s ease 0.1s forwards', opacity: 0,
+            }}>
+              <span style={{ fontSize: 18, fontWeight: 600, fontFamily: "'Rubik', sans-serif" }}>
+                <span style={{ color: letterColor }}>{currentLetter}</span>
+                <span style={{ color: '#888' }}> + </span>
+                <span style={{ color: currentNikud.color }}>{currentNikud.name}</span>
+                <span style={{ color: '#888' }}> = </span>
+                <span style={{ color: '#2D3436', fontSize: 22 }}>&quot;{syllableSound}&quot;</span>
+              </span>
+            </div>
+
+            <div style={{
+              fontSize: 24, color: '#888', fontFamily: "'Rubik', sans-serif",
+              animation: 'fadeInUp 0.4s ease 0.2s forwards', opacity: 0,
+            }}>
+              🔈 לחץ להשמעה
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Bottom Actions */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        gap: 10, padding: '8px 20px', position: 'relative', zIndex: 1, flexShrink: 0,
+      }}>
+        {quizMode ? (
+          <Button onClick={() => { setQuizMode(false); setQuizSelected(null); }} color="#BDBDBD" size="medium" icon="←">חזרה ללימוד</Button>
+        ) : (
+          <>
+            <Button onClick={prevNikud} color="#BDBDBD" size="small" icon="→">הקודם</Button>
+            <Button onClick={startQuiz} color="#4CAF50" size="large" icon="❓">בחן אותי!</Button>
+            <Button onClick={nextNikud} color="#BDBDBD" size="small" icon="←">הבא</Button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // Game wrapper for shared logic between Find, Match, and Sound games
 function GameScreen({ speak, addStars, addGame, addStreak, resetStreak, onBack, progress, gameConfig }) {
   const { title, icon, color, bgGradient, generateRound, questionText, getOptions, TOTAL } = gameConfig;
@@ -1246,6 +1850,276 @@ function SoundGameWrapper(props) {
   return <GameScreen {...props} gameConfig={config} />;
 }
 
+// ==================== SYLLABLE GAME ====================
+function SyllableGameWrapper(props) {
+  const { speak } = props;
+  const config = useMemo(() => ({
+    title: 'משחק צירופים',
+    icon: '🧩',
+    color: '#3498DB',
+    bgGradient: 'linear-gradient(180deg, #E3F2FD 0%, #FFF8E7 100%)',
+    description: 'שמע את הצירוף ומצא אותו! בָּ, מִ, שֵׁ...',
+    TOTAL: 5,
+    generateRound: (numOpts, prevSyllable) => {
+      let candidates = SYLLABLES.filter(s => s.syllable !== prevSyllable);
+      const t = candidates[Math.floor(Math.random() * candidates.length)];
+      const distractors = pickSyllableDistractors(t, numOpts - 1, 'sameLetter');
+      const opts = [t, ...distractors].sort(() => Math.random() - 0.5);
+      return {
+        target: t,
+        options: opts.map(o => ({ ...o, letter: o.syllable })), // Adapt for GameScreen
+        speakText: t.sound,
+        retryText: `זה ${t.syllable}, נשמע ${t.sound}. נסה שוב!`,
+      };
+    },
+    questionText: (data) => (
+      <div style={{ marginBottom: 16, textAlign: 'center', animation: 'popIn 0.3s ease' }}>
+        <div style={{
+          width: 85, height: 85, borderRadius: '50%', margin: '0 auto 10px',
+          background: `linear-gradient(145deg, ${data.target.color}, ${data.target.color}bb)`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 36, cursor: 'pointer',
+          boxShadow: `0 6px 25px ${data.target.color}44, inset 0 2px 0 rgba(255,255,255,0.3)`,
+          animation: 'pulse 2s ease infinite',
+        }} onClick={() => speak(data.target.sound)}>
+          🔊
+        </div>
+        <div style={{
+          fontSize: 20, fontWeight: 700, color: '#2D3436',
+          background: 'white', padding: '10px 24px', borderRadius: 18,
+          fontFamily: "'Rubik', sans-serif", boxShadow: '0 2px 10px rgba(0,0,0,0.06)',
+        }}>
+          איזה צירוף נשמע ככה? 🧩
+        </div>
+      </div>
+    ),
+    getOptions: (data) => data.options,
+    renderOption: (opt) => (
+      <span style={{ fontSize: 38 }}>{opt.syllable}</span>
+    ),
+  }), [speak]);
+
+  // Custom game screen for syllables (options are syllables, not letters)
+  const { addStars, addGame, addStreak, resetStreak, onBack, progress } = props;
+  const [phase, setPhase] = useState('intro');
+  const [round, setRound] = useState(0);
+  const [score, setScore] = useState(0);
+  const [roundData, setRoundData] = useState(null);
+  const [selected, setSelected] = useState(null);
+  const [feedback, setFeedback] = useState(null);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [streak, setStreak] = useState(0);
+  const playSound = useSound();
+  const safeTimeout = useSafeTimeouts();
+  const prevTarget = useRef(null);
+
+  const numOptions = progress.level >= 3 ? 4 : progress.level >= 2 ? 3 : 2;
+
+  const newRound = useCallback(() => {
+    const data = config.generateRound(numOptions, prevTarget.current);
+    prevTarget.current = data.target.syllable;
+    setRoundData(data);
+    setSelected(null);
+    setFeedback(null);
+    safeTimeout(() => speak(data.speakText), 400);
+  }, [speak, safeTimeout, config, numOptions]);
+
+  const startGame = () => {
+    playSound('click');
+    setPhase('playing');
+    setRound(0);
+    setScore(0);
+    setStreak(0);
+    newRound();
+  };
+
+  useEffect(() => { if (phase === 'intro') speak(config.title); }, [phase, speak, config.title]);
+
+  const handlePick = (opt) => {
+    if (selected || !roundData) return;
+    playSound('click');
+    setSelected(opt.syllable);
+
+    if (opt.syllable === roundData.target.syllable) {
+      setFeedback('success');
+      setScore(s => s + 1);
+      setStreak(s => s + 1);
+      const bonus = streak >= 4 ? 5 : streak >= 2 ? 3 : 2;
+      addStars(bonus);
+      addStreak();
+      safeTimeout(() => {
+        setFeedback(null);
+        if (round + 1 < config.TOTAL) { setRound(r => r + 1); newRound(); }
+        else {
+          addGame();
+          setShowConfetti(true);
+          setPhase('done');
+          speak('מעולה! סיימת!');
+          safeTimeout(() => setShowConfetti(false), 3000);
+        }
+      }, 1500);
+    } else {
+      setFeedback('wrong');
+      setStreak(0);
+      resetStreak();
+      safeTimeout(() => {
+        setSelected(null);
+        setFeedback(null);
+        speak(roundData.retryText || 'נסה שוב!');
+      }, 1500);
+    }
+  };
+
+  const screenStyle = {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 70,
+    display: 'flex', flexDirection: 'column', zIndex: 1,
+  };
+  const bgStyle = {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0,
+    background: config.bgGradient,
+  };
+
+  if (phase === 'intro') {
+    return (
+      <div style={screenStyle}>
+        <div style={bgStyle} />
+        <FloatingParticles />
+        <div style={{ display: 'flex', padding: '12px 16px', position: 'relative', zIndex: 1 }}>
+          <IconButton onClick={onBack} color="#ccc">✕</IconButton>
+        </div>
+        <div style={{
+          flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+          justifyContent: 'center', gap: 14, position: 'relative', zIndex: 1,
+        }}>
+          <img src={ASSETS.images.mascotHappy} alt="" style={{ width: 120, height: 120, objectFit: 'contain', animation: 'float 3s ease infinite' }} />
+          <span style={{ fontSize: 50, animation: 'popIn 0.4s ease' }}>{config.icon}</span>
+          <h2 style={{ fontSize: 28, fontWeight: 700, color: '#2D3436', fontFamily: "'Rubik', sans-serif", animation: 'fadeInUp 0.4s ease 0.1s forwards', opacity: 0 }}>{config.title}</h2>
+          <p style={{
+            fontSize: 15, color: '#777', fontFamily: "'Rubik', sans-serif",
+            textAlign: 'center', padding: '0 30px', animation: 'fadeInUp 0.4s ease 0.2s forwards', opacity: 0,
+          }}>
+            {config.description}
+          </p>
+          <div style={{ animation: 'fadeInUp 0.4s ease 0.3s forwards', opacity: 0, marginTop: 5 }}>
+            <Button onClick={startGame} color={config.color} size="large" icon="▶">התחל משחק</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (phase === 'done') {
+    const totalStars = score * 2 + Math.max(0, streak - 2) * 2;
+    return (
+      <div style={screenStyle}>
+        <div style={bgStyle} />
+        <ConfettiEffect active={showConfetti} />
+        <div style={{
+          flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+          justifyContent: 'center', gap: 14, position: 'relative', zIndex: 1,
+        }}>
+          <img src={ASSETS.images.mascotCelebrate} alt="" style={{ width: 120, height: 120, objectFit: 'contain', animation: 'bounce 1s ease infinite' }} />
+          <div style={{
+            background: 'white', padding: '25px 45px', borderRadius: 26,
+            boxShadow: '0 8px 30px rgba(0,0,0,0.1)', textAlign: 'center',
+            animation: 'popIn 0.4s ease',
+          }}>
+            <div style={{ fontSize: 18, color: '#888', fontFamily: "'Rubik', sans-serif" }}>
+              {score === config.TOTAL ? 'מושלם! 🌟' : score >= config.TOTAL - 1 ? 'כמעט מושלם!' : 'סיימת!'}
+            </div>
+            <div style={{ fontSize: 50, fontWeight: 700, color: '#2D3436', fontFamily: "'Rubik', sans-serif" }}>{score} / {config.TOTAL}</div>
+            <div style={{ fontSize: 20, color: '#FFB800', fontFamily: "'Rubik', sans-serif" }}>⭐ +{totalStars}</div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>
+            <Button onClick={startGame} color={config.color} size="large" icon="🔄">שחק שוב</Button>
+            <Button onClick={onBack} color="#BDBDBD" size="medium" icon="🏠">חזרה הביתה</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // PLAYING
+  return (
+    <div style={screenStyle}>
+      <div style={bgStyle} />
+      <FloatingParticles />
+      {feedback && <Feedback type={feedback} />}
+      <StreakBadge streak={streak} />
+
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '10px 16px', position: 'relative', zIndex: 1, flexShrink: 0,
+      }}>
+        <IconButton onClick={onBack} color="#ccc">✕</IconButton>
+        <div style={{
+          background: 'white', padding: '5px 14px', borderRadius: 20,
+          fontSize: 14, fontWeight: 600, color: '#555', fontFamily: "'Rubik', sans-serif",
+          boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+        }}>
+          שאלה {round + 1} מתוך {config.TOTAL}
+        </div>
+        <IconButton onClick={() => roundData && speak(roundData.speakText)} color="#2196F3">🔊</IconButton>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '0 20px', position: 'relative', zIndex: 1 }}>
+        <ProgressBar current={round + 1} total={config.TOTAL} color={config.color} />
+      </div>
+
+      <div style={{
+        flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+        justifyContent: 'center', padding: '8px 20px', position: 'relative', zIndex: 1,
+      }}>
+        {roundData && config.questionText(roundData)}
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: numOptions <= 2 ? 'repeat(2, 1fr)' : 'repeat(2, 1fr)',
+          gap: 12, width: '100%', maxWidth: 280,
+        }}>
+          {roundData && roundData.options.map((opt, i) => {
+            const isSelected = selected === opt.syllable;
+            const isCorrect = opt.syllable === roundData.target.syllable;
+            let bg = 'white';
+            if (isSelected) bg = isCorrect ? '#C8E6C9' : '#FFCDD2';
+            return (
+              <div
+                key={i}
+                onClick={() => handlePick(opt)}
+                style={{
+                  aspectRatio: numOptions <= 2 ? '1.2' : '1',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: numOptions <= 2 ? 50 : 40, fontWeight: 700, color: opt.color,
+                  background: isSelected ? bg : 'linear-gradient(145deg, white, #fafafa)',
+                  borderRadius: 22,
+                  border: `3px solid ${isSelected ? (isCorrect ? '#4CAF50' : '#F44336') : opt.color + '66'}`,
+                  boxShadow: isSelected
+                    ? (isCorrect ? '0 0 25px rgba(76,175,80,0.35)' : '0 0 25px rgba(244,67,54,0.35)')
+                    : `0 6px 20px ${opt.color}18`,
+                  cursor: selected ? 'default' : 'pointer',
+                  transition: 'all 0.2s',
+                  fontFamily: "'Rubik', sans-serif",
+                  animation: `fadeInUp 0.3s ease ${i * 0.05}s forwards`, opacity: 0,
+                }}
+              >
+                {opt.syllable}
+              </div>
+            );
+          })}
+        </div>
+
+        <div style={{
+          marginTop: 14, background: 'white', padding: '6px 18px', borderRadius: 16,
+          fontSize: 16, fontWeight: 700, color: '#FFB800', fontFamily: "'Rubik', sans-serif",
+          boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+        }}>
+          ⭐ {score * 2 + Math.max(0, streak - 2) * 2} כוכבים
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AchievementsScreen({ progress, speak, onBack }) {
   useEffect(() => { speak(`יש לך ${progress.stars} כוכבים! רמה ${progress.level}!`); }, [speak, progress.stars, progress.level]);
 
@@ -1391,12 +2265,18 @@ function App() {
     switch (view) {
       case 'learn':
         return <LearnScreen speak={speak} progress={data} addLetter={addLetter} addStars={addStars} onBack={handleBack} />;
+      case 'nikud':
+        return <NikudLearnScreen speak={speak} progress={data} addStars={addStars} onBack={handleBack} />;
+      case 'syllables':
+        return <SyllablesLearnScreen speak={speak} progress={data} addStars={addStars} onBack={handleBack} />;
       case 'find':
         return <FindGameWrapper {...gameProps} />;
       case 'match':
         return <MatchGameWrapper {...gameProps} />;
       case 'sound':
         return <SoundGameWrapper {...gameProps} />;
+      case 'syllableGame':
+        return <SyllableGameWrapper {...gameProps} />;
       case 'achievements':
         return <AchievementsScreen progress={data} speak={speak} onBack={handleBack} />;
       default:
