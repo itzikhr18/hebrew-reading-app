@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>ניהול תלמידים - מורה נהיגה</title>
+
+  <style>
+    /* ===== CSS Variables ===== */
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --success: #16a34a;
+      --success-dark: #15803d;
+      --danger: #dc2626;
+      --warning: #f59e0b;
+      --bg: #f0f4f8;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --text-light: #64748b;
+      --border: #e2e8f0;
+      --whatsapp: #25D366;
+      --whatsapp-dark: #1da851;
+      --shadow: 0 2px 8px rgba(0,0,0,0.08);
+      --shadow-lg: 0 4px 16px rgba(0,0,0,0.12);
+      --radius: 14px;
+      --radius-sm: 10px;
+    }
+
+    /* ===== Reset & Base ===== */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Rubik', 'Heebo', Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 16px;
+      line-height: 1.5;
+      min-height: 100vh;
+      padding: 0;
+      direction: rtl;
+    }
+
+    /* ===== Header ===== */
+    .header {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      padding: 18px 20px;
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 12px rgba(37,99,235,0.3);
+    }
+
+    .header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      margin: 0;
+    }
+
+    .header p {
+      font-size: 13px;
+      opacity: 0.85;
+      margin-top: 2px;
+    }
+
+    /* ===== Container ===== */
+    .container {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    /* ===== Cards ===== */
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-title {
+      font-size: 17px;
+      font-weight: 700;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title .icon {
+      font-size: 22px;
+    }
+
+    /* ===== Text Area ===== */
+    .paste-area {
+      width: 100%;
+      min-height: 130px;
+      border: 2px dashed var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      font-size: 16px;
+      font-family: inherit;
+      direction: rtl;
+      resize: vertical;
+      transition: border-color 0.2s;
+      background: #f8fafc;
+      color: var(--text);
+    }
+
+    .paste-area:focus {
+      outline: none;
+      border-color: var(--primary);
+      border-style: solid;
+      background: white;
+    }
+
+    .paste-area::placeholder {
+      color: var(--text-light);
+      font-size: 15px;
+    }
+
+    /* ===== Buttons ===== */
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 16px 24px;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 18px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+      -webkit-appearance: none;
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      box-shadow: 0 3px 10px rgba(37,99,235,0.35);
+      margin-top: 14px;
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 4px 14px rgba(37,99,235,0.45);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-whatsapp {
+      background: linear-gradient(135deg, var(--whatsapp), var(--whatsapp-dark));
+      color: white;
+      box-shadow: 0 3px 10px rgba(37,211,102,0.35);
+      margin-top: 12px;
+      font-size: 17px;
+    }
+
+    .btn-whatsapp:hover {
+      box-shadow: 0 4px 14px rgba(37,211,102,0.45);
+    }
+
+    .btn-secondary {
+      background: #f1f5f9;
+      color: var(--text);
+      font-size: 15px;
+      font-weight: 600;
+      padding: 12px 20px;
+      margin-top: 10px;
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, var(--success), var(--success-dark));
+      color: white;
+      box-shadow: 0 3px 10px rgba(22,163,74,0.35);
+      margin-top: 12px;
+    }
+
+    .btn-small {
+      padding: 10px 16px;
+      font-size: 14px;
+      width: auto;
+      display: inline-flex;
+    }
+
+    /* ===== WhatsApp Icon SVG ===== */
+    .wa-icon {
+      width: 26px;
+      height: 26px;
+      fill: white;
+    }
+
+    /* ===== Result Area ===== */
+    .result-area {
+      display: none;
+      margin-top: 16px;
+    }
+
+    .result-area.show {
+      display: block;
+      animation: slideUp 0.3s ease;
+    }
+
+    .result-box {
+      padding: 16px;
+      border-radius: var(--radius-sm);
+      font-size: 15px;
+      line-height: 1.7;
+      white-space: pre-line;
+    }
+
+    .result-success {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #166534;
+    }
+
+    .result-error {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+    }
+
+    .result-info {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1e40af;
+    }
+
+    /* ===== Schedule Form ===== */
+    .schedule-form {
+      display: none;
+      margin-top: 14px;
+      padding: 16px;
+      background: #f8fafc;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+    }
+
+    .schedule-form.show {
+      display: block;
+      animation: slideUp 0.3s ease;
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--text);
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: 16px;
+      font-family: inherit;
+      direction: rtl;
+      transition: border-color 0.2s;
+      background: white;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    /* ===== Phone Input Area ===== */
+    .phone-input-area {
+      display: none;
+      margin-top: 12px;
+      padding: 14px;
+      background: #fffbeb;
+      border-radius: var(--radius-sm);
+      border: 1px solid #fde68a;
+    }
+
+    .phone-input-area.show {
+      display: block;
+      animation: slideUp 0.3s ease;
+    }
+
+    .phone-input-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-top: 8px;
+    }
+
+    .phone-input-row input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: 16px;
+      font-family: inherit;
+      direction: ltr;
+      text-align: left;
+    }
+
+    .phone-input-row input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    /* ===== Today Lessons ===== */
+    .lesson-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: #f8fafc;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      border-right: 4px solid var(--primary);
+    }
+
+    .lesson-item.test {
+      border-right-color: var(--danger);
+      background: #fef2f2;
+    }
+
+    .lesson-time {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--primary);
+      min-width: 55px;
+      text-align: center;
+    }
+
+    .lesson-item.test .lesson-time {
+      color: var(--danger);
+    }
+
+    .lesson-title {
+      font-size: 15px;
+      font-weight: 500;
+    }
+
+    .no-lessons {
+      text-align: center;
+      color: var(--text-light);
+      padding: 20px;
+      font-size: 14px;
+    }
+
+    /* ===== Loading ===== */
+    .spinner {
+      display: none;
+      width: 24px;
+      height: 24px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    .spinner.show {
+      display: inline-block;
+    }
+
+    /* ===== Tabs ===== */
+    .tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 16px;
+      background: var(--card-bg);
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 13px 10px;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: var(--text-light);
+      font-family: inherit;
+      transition: all 0.2s;
+      border-bottom: 3px solid transparent;
+    }
+
+    .tab.active {
+      color: var(--primary);
+      background: #eff6ff;
+      border-bottom-color: var(--primary);
+    }
+
+    /* ===== Tab Content ===== */
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.2s ease;
+    }
+
+    /* ===== Animations ===== */
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.03); }
+    }
+
+    /* ===== Students List ===== */
+    .student-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      background: #f8fafc;
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+
+    .student-name {
+      font-weight: 600;
+      font-size: 15px;
+    }
+
+    .student-info {
+      font-size: 13px;
+      color: var(--text-light);
+    }
+
+    .student-debt {
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .debt-positive { color: var(--danger); }
+    .debt-negative { color: var(--success); }
+    .debt-zero { color: var(--text-light); }
+
+    /* ===== Utility ===== */
+    .mt-8 { margin-top: 8px; }
+    .mt-12 { margin-top: 12px; }
+    .text-center { text-align: center; }
+    .text-muted { color: var(--text-light); font-size: 13px; }
+  </style>
+</head>
+<body>
+
+  <!-- ===== Header ===== -->
+  <div class="header">
+    <h1>ניהול תלמידים</h1>
+    <p>העתק - הדבק - בצע קסם</p>
+  </div>
+
+  <div class="container">
+
+    <!-- ===== Tabs ===== -->
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('main')" id="tab-main">הדבק הודעה</button>
+      <button class="tab" onclick="switchTab('today')" id="tab-today">היום</button>
+      <button class="tab" onclick="switchTab('students')" id="tab-students">תלמידים</button>
+    </div>
+
+    <!-- =========================================== -->
+    <!-- TAB 1: Main - Paste & Action                -->
+    <!-- =========================================== -->
+    <div class="tab-content active" id="content-main">
+      <div class="card">
+        <div class="card-title">
+          <span class="icon">&#x1F4CB;</span>
+          הדבק הודעה כאן
+        </div>
+
+        <textarea
+          id="pasteArea"
+          class="paste-area"
+          placeholder="הדבק כאן הודעת SMS על טסט, הודעת תשלום מביט, או בקשה מוואטסאפ..."
+          rows="5"
+        ></textarea>
+
+        <button class="btn btn-primary" id="magicBtn" onclick="doMagic()">
+          <span id="magicBtnText">&#x2728; בצע קסם</span>
+          <div class="spinner" id="magicSpinner"></div>
+        </button>
+      </div>
+
+      <!-- Result Area -->
+      <div class="result-area" id="resultArea">
+        <div class="card">
+          <div class="card-title">
+            <span class="icon" id="resultIcon">&#x2705;</span>
+            <span id="resultTitle">תוצאה</span>
+          </div>
+
+          <div class="result-box" id="resultBox"></div>
+
+          <!-- Phone Input (if needed) -->
+          <div class="phone-input-area" id="phoneInputArea">
+            <div style="font-size:14px; font-weight:600; color:#92400e;">
+              &#x26A0; לא נמצא מספר טלפון. הזן מספר:
+            </div>
+            <div class="phone-input-row">
+              <input type="tel" id="phoneInput" placeholder="050-1234567" dir="ltr">
+              <button class="btn btn-primary btn-small" onclick="useManualPhone()">אישור</button>
+            </div>
+          </div>
+
+          <!-- WhatsApp Button -->
+          <a class="btn btn-whatsapp" id="whatsappBtn" href="#" target="_blank" rel="noopener" style="display:none;">
+            <svg class="wa-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+            </svg>
+            <span id="whatsappBtnText">שלח הודעה בוואטסאפ</span>
+          </a>
+
+          <!-- Schedule Form (for lesson requests) -->
+          <div class="schedule-form" id="scheduleForm">
+            <div class="form-group">
+              <label>שם התלמיד:</label>
+              <input type="text" class="form-input" id="schedName" placeholder="שם מלא">
+            </div>
+            <div class="form-group">
+              <label>תאריך (DD/MM/YYYY):</label>
+              <input type="text" class="form-input" id="schedDate" placeholder="25/03/2025" dir="ltr" style="text-align:left;">
+            </div>
+            <div class="form-group">
+              <label>שעה:</label>
+              <input type="text" class="form-input" id="schedTime" placeholder="14:00" dir="ltr" style="text-align:left;">
+            </div>
+            <div class="form-group" id="schedPhoneGroup" style="display:none;">
+              <label>טלפון:</label>
+              <input type="tel" class="form-input" id="schedPhone" placeholder="050-1234567" dir="ltr" style="text-align:left;">
+            </div>
+            <button class="btn btn-success" onclick="confirmSchedule()">
+              &#x2705; אשר וקבע שיעור
+            </button>
+          </div>
+
+          <!-- Clear button -->
+          <button class="btn btn-secondary" onclick="clearResult()">
+            &#x1F504; נקה והתחל מחדש
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- =========================================== -->
+    <!-- TAB 2: Today's Lessons                      -->
+    <!-- =========================================== -->
+    <div class="tab-content" id="content-today">
+      <div class="card">
+        <div class="card-title">
+          <span class="icon">&#x1F4C5;</span>
+          שיעורים להיום
+        </div>
+        <div id="todayLessons">
+          <div class="no-lessons">&#x23F3; טוען...</div>
+        </div>
+        <button class="btn btn-secondary mt-12" onclick="loadTodayLessons()">
+          &#x1F504; רענן
+        </button>
+      </div>
+    </div>
+
+    <!-- =========================================== -->
+    <!-- TAB 3: Students                             -->
+    <!-- =========================================== -->
+    <div class="tab-content" id="content-students">
+      <div class="card">
+        <div class="card-title">
+          <span class="icon">&#x1F465;</span>
+          רשימת תלמידים
+        </div>
+        <div id="studentsList">
+          <div class="no-lessons">&#x23F3; טוען...</div>
+        </div>
+        <button class="btn btn-secondary mt-12" onclick="loadStudents()">
+          &#x1F504; רענן
+        </button>
+      </div>
+
+      <!-- Add Student Form -->
+      <div class="card">
+        <div class="card-title">
+          <span class="icon">&#x2795;</span>
+          הוסף תלמיד חדש
+        </div>
+        <div class="form-group">
+          <label>שם מלא:</label>
+          <input type="text" class="form-input" id="newStudentName" placeholder="ישראל ישראלי">
+        </div>
+        <div class="form-group">
+          <label>טלפון:</label>
+          <input type="tel" class="form-input" id="newStudentPhone" placeholder="050-1234567" dir="ltr" style="text-align:left;">
+        </div>
+        <div class="form-group">
+          <label>מחיר לשיעור (&#x20AA;):</label>
+          <input type="number" class="form-input" id="newStudentPrice" placeholder="180" dir="ltr" style="text-align:left;">
+        </div>
+        <button class="btn btn-primary" onclick="addNewStudent()">
+          &#x2795; הוסף תלמיד
+        </button>
+        <div class="mt-8 text-center text-muted" id="addStudentMsg"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== JavaScript ===== -->
+  <script>
+    // ===== State =====
+    var currentResult = null;
+    var currentWhatsappPhone = '';
+    var currentWhatsappMessage = '';
+
+    // ===== Tab Navigation =====
+    function switchTab(tabName) {
+      // Hide all content
+      document.querySelectorAll('.tab-content').forEach(function(el) {
+        el.classList.remove('active');
+      });
+      document.querySelectorAll('.tab').forEach(function(el) {
+        el.classList.remove('active');
+      });
+
+      // Show selected
+      document.getElementById('content-' + tabName).classList.add('active');
+      document.getElementById('tab-' + tabName).classList.add('active');
+
+      // Load data when switching tabs
+      if (tabName === 'today') loadTodayLessons();
+      if (tabName === 'students') loadStudents();
+    }
+
+    // ===== Main Magic Function =====
+    function doMagic() {
+      var text = document.getElementById('pasteArea').value.trim();
+      if (!text) {
+        showResult(false, 'הדבק הודעה בתיבת הטקסט ולחץ שוב.', 'error');
+        return;
+      }
+
+      // Show loading
+      var btn = document.getElementById('magicBtn');
+      var btnText = document.getElementById('magicBtnText');
+      var spinner = document.getElementById('magicSpinner');
+      btn.disabled = true;
+      btnText.textContent = 'מעבד...';
+      spinner.classList.add('show');
+
+      // Hide previous result
+      document.getElementById('resultArea').classList.remove('show');
+
+      google.script.run
+        .withSuccessHandler(handleResult)
+        .withFailureHandler(function(error) {
+          handleResult({ success: false, message: 'שגיאת שרת: ' + error.message });
+        })
+        .parseAndAction(text);
+    }
+
+    // ===== Handle Result =====
+    function handleResult(result) {
+      // Reset button
+      var btn = document.getElementById('magicBtn');
+      var btnText = document.getElementById('magicBtnText');
+      var spinner = document.getElementById('magicSpinner');
+      btn.disabled = false;
+      btnText.innerHTML = '&#x2728; בצע קסם';
+      spinner.classList.remove('show');
+
+      currentResult = result;
+
+      if (!result) {
+        showResult(false, 'לא התקבלה תשובה מהשרת.', 'error');
+        return;
+      }
+
+      // Show result message
+      if (result.success) {
+        showResult(true, result.message, 'success');
+      } else {
+        showResult(false, result.message, result.needsScheduling ? 'info' : 'error');
+      }
+
+      // Phone input if needed
+      var phoneArea = document.getElementById('phoneInputArea');
+      if (result.needsPhone && result.success) {
+        phoneArea.classList.add('show');
+      } else {
+        phoneArea.classList.remove('show');
+      }
+
+      // WhatsApp button
+      var waBtn = document.getElementById('whatsappBtn');
+      if (result.whatsappPhone && result.whatsappMessage && result.success && !result.needsScheduling) {
+        currentWhatsappPhone = result.whatsappPhone;
+        currentWhatsappMessage = result.whatsappMessage;
+        var waUrl = 'https://wa.me/' + result.whatsappPhone + '?text=' + encodeURIComponent(result.whatsappMessage);
+        waBtn.href = waUrl;
+        waBtn.style.display = 'flex';
+      } else {
+        waBtn.style.display = 'none';
+      }
+
+      // Schedule form for lesson requests
+      var schedForm = document.getElementById('scheduleForm');
+      if (result.needsScheduling) {
+        schedForm.classList.add('show');
+        if (result.schedulingData && result.schedulingData.name) {
+          document.getElementById('schedName').value = result.schedulingData.name;
+        }
+        if (result.needsPhone) {
+          document.getElementById('schedPhoneGroup').style.display = 'block';
+        }
+      } else {
+        schedForm.classList.remove('show');
+      }
+    }
+
+    // ===== Show Result Box =====
+    function showResult(success, message, type) {
+      var area = document.getElementById('resultArea');
+      var box = document.getElementById('resultBox');
+      var icon = document.getElementById('resultIcon');
+      var title = document.getElementById('resultTitle');
+
+      box.textContent = message;
+
+      if (type === 'success') {
+        box.className = 'result-box result-success';
+        icon.innerHTML = '&#x2705;';
+        title.textContent = 'בוצע בהצלחה';
+      } else if (type === 'error') {
+        box.className = 'result-box result-error';
+        icon.innerHTML = '&#x274C;';
+        title.textContent = 'שגיאה';
+      } else {
+        box.className = 'result-box result-info';
+        icon.innerHTML = '&#x2139;';
+        title.textContent = 'דרוש אישור';
+      }
+
+      area.classList.add('show');
+
+      // Scroll to result
+      setTimeout(function() {
+        area.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+
+    // ===== Manual Phone Entry =====
+    function useManualPhone() {
+      var phone = document.getElementById('phoneInput').value.trim();
+      if (!phone) return;
+
+      var formatted = formatPhoneLocal(phone);
+      currentWhatsappPhone = formatted;
+
+      if (currentResult && currentResult.whatsappMessage) {
+        currentWhatsappMessage = currentResult.whatsappMessage;
+      }
+
+      // Show WhatsApp button
+      var waBtn = document.getElementById('whatsappBtn');
+      var waUrl = 'https://wa.me/' + formatted + '?text=' + encodeURIComponent(currentWhatsappMessage);
+      waBtn.href = waUrl;
+      waBtn.style.display = 'flex';
+
+      // Hide phone input
+      document.getElementById('phoneInputArea').classList.remove('show');
+
+      // Save phone to student record
+      if (currentResult && currentResult.studentName) {
+        google.script.run.saveStudentPhone(currentResult.studentName, phone);
+      }
+    }
+
+    // ===== Confirm Lesson Schedule =====
+    function confirmSchedule() {
+      var name = document.getElementById('schedName').value.trim();
+      var date = document.getElementById('schedDate').value.trim();
+      var time = document.getElementById('schedTime').value.trim();
+      var phone = document.getElementById('schedPhone').value.trim();
+
+      if (!name || !date || !time) {
+        alert('נא למלא שם, תאריך ושעה.');
+        return;
+      }
+
+      // Validate date format
+      if (!/^\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}$/.test(date)) {
+        alert('פורמט תאריך לא תקין. השתמש ב-DD/MM/YYYY');
+        return;
+      }
+
+      // Validate time format
+      if (!/^\d{1,2}:\d{2}$/.test(time)) {
+        alert('פורמט שעה לא תקין. השתמש ב-HH:MM');
+        return;
+      }
+
+      // Disable button
+      var btn = event.target;
+      btn.disabled = true;
+      btn.textContent = 'קובע...';
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          btn.disabled = false;
+          btn.innerHTML = '&#x2705; אשר וקבע שיעור';
+
+          if (result.success) {
+            // Hide schedule form
+            document.getElementById('scheduleForm').classList.remove('show');
+
+            // Update result box
+            showResult(true, result.message, 'success');
+
+            // Show WhatsApp button
+            var waBtn = document.getElementById('whatsappBtn');
+            if (result.whatsappPhone && result.whatsappMessage) {
+              var waUrl = 'https://wa.me/' + result.whatsappPhone + '?text=' + encodeURIComponent(result.whatsappMessage);
+              waBtn.href = waUrl;
+              waBtn.style.display = 'flex';
+            } else if (phone) {
+              var formatted = formatPhoneLocal(phone);
+              var waUrl = 'https://wa.me/' + formatted + '?text=' + encodeURIComponent(result.whatsappMessage);
+              waBtn.href = waUrl;
+              waBtn.style.display = 'flex';
+            }
+
+            // Hide phone input
+            document.getElementById('phoneInputArea').classList.remove('show');
+          } else {
+            showResult(false, result.message, 'error');
+          }
+        })
+        .withFailureHandler(function(error) {
+          btn.disabled = false;
+          btn.innerHTML = '&#x2705; אשר וקבע שיעור';
+          showResult(false, 'שגיאה: ' + error.message, 'error');
+        })
+        .scheduleLesson(name, date, time, phone || null);
+    }
+
+    // ===== Clear =====
+    function clearResult() {
+      document.getElementById('resultArea').classList.remove('show');
+      document.getElementById('pasteArea').value = '';
+      document.getElementById('phoneInputArea').classList.remove('show');
+      document.getElementById('scheduleForm').classList.remove('show');
+      document.getElementById('whatsappBtn').style.display = 'none';
+      document.getElementById('phoneInput').value = '';
+      document.getElementById('schedName').value = '';
+      document.getElementById('schedDate').value = '';
+      document.getElementById('schedTime').value = '';
+      document.getElementById('schedPhone').value = '';
+      currentResult = null;
+      currentWhatsappPhone = '';
+      currentWhatsappMessage = '';
+
+      // Focus on paste area
+      document.getElementById('pasteArea').focus();
+    }
+
+    // ===== Load Today's Lessons =====
+    function loadTodayLessons() {
+      var container = document.getElementById('todayLessons');
+      container.innerHTML = '<div class="no-lessons">&#x23F3; טוען שיעורים...</div>';
+
+      google.script.run
+        .withSuccessHandler(function(lessons) {
+          if (!lessons || lessons.length === 0) {
+            container.innerHTML = '<div class="no-lessons">&#x1F389; אין שיעורים מתוכננים להיום</div>';
+            return;
+          }
+
+          var html = '';
+          for (var i = 0; i < lessons.length; i++) {
+            var l = lessons[i];
+            var cls = l.isTest ? 'lesson-item test' : 'lesson-item';
+            var badge = l.isTest ? ' &#x1F534;' : '';
+            html += '<div class="' + cls + '">';
+            html += '<div class="lesson-time">' + l.time + '</div>';
+            html += '<div class="lesson-title">' + l.title + badge + '</div>';
+            html += '</div>';
+          }
+          container.innerHTML = html;
+        })
+        .withFailureHandler(function(error) {
+          container.innerHTML = '<div class="no-lessons">&#x26A0; שגיאה בטעינה: ' + error.message + '</div>';
+        })
+        .getTodayLessons();
+    }
+
+    // ===== Load Students =====
+    function loadStudents() {
+      var container = document.getElementById('studentsList');
+      container.innerHTML = '<div class="no-lessons">&#x23F3; טוען תלמידים...</div>';
+
+      google.script.run
+        .withSuccessHandler(function(students) {
+          if (!students || students.length === 0) {
+            container.innerHTML = '<div class="no-lessons">&#x1F4DD; אין תלמידים. הוסף תלמיד חדש למטה.</div>';
+            return;
+          }
+
+          var html = '';
+          for (var i = 0; i < students.length; i++) {
+            var s = students[i];
+            var debt = parseFloat(s.debt) || 0;
+            var debtClass = debt > 0 ? 'debt-positive' : (debt < 0 ? 'debt-negative' : 'debt-zero');
+            var debtText = debt > 0 ? ('חוב: ' + debt + ' &#x20AA;') : (debt < 0 ? ('יתרה: ' + Math.abs(debt) + ' &#x20AA;') : 'מאוזן');
+
+            html += '<div class="student-item">';
+            html += '<div>';
+            html += '<div class="student-name">' + s.name + '</div>';
+            html += '<div class="student-info">' + (s.phone || 'ללא טלפון') + '</div>';
+            html += '</div>';
+            html += '<div class="student-debt ' + debtClass + '">' + debtText + '</div>';
+            html += '</div>';
+          }
+          container.innerHTML = html;
+        })
+        .withFailureHandler(function(error) {
+          container.innerHTML = '<div class="no-lessons">&#x26A0; שגיאה: ' + error.message + '</div>';
+        })
+        .getStudentsList();
+    }
+
+    // ===== Add New Student =====
+    function addNewStudent() {
+      var name = document.getElementById('newStudentName').value.trim();
+      var phone = document.getElementById('newStudentPhone').value.trim();
+      var price = document.getElementById('newStudentPrice').value.trim();
+
+      if (!name) {
+        document.getElementById('addStudentMsg').textContent = 'נא להזין שם.';
+        return;
+      }
+
+      document.getElementById('addStudentMsg').textContent = 'שומר...';
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          document.getElementById('addStudentMsg').textContent = result.message;
+          if (result.success) {
+            document.getElementById('newStudentName').value = '';
+            document.getElementById('newStudentPhone').value = '';
+            document.getElementById('newStudentPrice').value = '';
+            loadStudents();
+          }
+        })
+        .withFailureHandler(function(error) {
+          document.getElementById('addStudentMsg').textContent = 'שגיאה: ' + error.message;
+        })
+        .addStudent(name, phone, parseFloat(price) || 0);
+    }
+
+    // ===== Format Phone Locally =====
+    function formatPhoneLocal(phone) {
+      phone = phone.replace(/[\s\-\(\)\+]/g, '');
+      if (phone.startsWith('972')) return phone;
+      if (phone.startsWith('0')) return '972' + phone.substring(1);
+      return '972' + phone;
+    }
+
+    // ===== Init =====
+    document.addEventListener('DOMContentLoaded', function() {
+      // Auto-focus paste area
+      setTimeout(function() {
+        document.getElementById('pasteArea').focus();
+      }, 300);
+    });
+  </script>
+
+</body>
+</html>
